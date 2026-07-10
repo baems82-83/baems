@@ -1,0 +1,71 @@
+backend:
+  name: github
+  repo: baems82-83/baems
+  branch: main
+
+media_library:
+  name: cloudinary
+  config:
+    cloud_name: tvp2hzjn
+    api_key: YOUR_CLOUDINARY_API_KEY
+
+site_url: https://baems.netlify.app
+logo_url: https://res.cloudinary.com/tvp2hzjn/image/upload/baems/logo.png
+
+collections:
+  - name: "settings"
+    label: "Site Settings"
+    files:
+      - name: "general"
+        label: "General Settings"
+        file: "content/settings.json"
+        fields:
+          - { name: "portal_name", label: "Portal Name (shown in header)", widget: "string", default: "BAEMS STUDY" }
+          - { name: "school_name", label: "School Name", widget: "string" }
+          - { name: "tagline", label: "Hero Tagline", widget: "text" }
+          - { name: "address", label: "Address", widget: "string" }
+          - { name: "phone", label: "Phone", widget: "string" }
+          - { name: "email", label: "Email", widget: "string" }
+          - { name: "established_bs", label: "Established (B.S. year)", widget: "string" }
+          - { name: "pass_rate", label: "NEB Pass Rate (e.g. 94%)", widget: "string" }
+          - { name: "faculty_count", label: "Faculty Count", widget: "string" }
+          - { name: "lab_hours", label: "Lab Hours per Week", widget: "string" }
+          - { name: "logo", label: "Logo", widget: "image" }
+
+  - name: "notices"
+    label: "Notices"
+    files:
+      - name: "notices"
+        label: "Notice Board"
+        file: "content/notices.json"
+        fields:
+          - name: "items"
+            label: "Notices"
+            widget: "list"
+            summary: "{{title}} — {{tag}}"
+            fields:
+              - { name: "title", label: "Title", widget: "string" }
+              - name: "tag"
+                label: "Tag"
+                widget: "select"
+                options: ["Exam", "Holiday", "Notice"]
+                default: "Notice"
+              - { name: "date", label: "Date (e.g. Posted 10 Jul 2026)", widget: "string" }
+              - { name: "body", label: "Details", widget: "text" }
+
+  - name: "faculty"
+    label: "Faculty"
+    files:
+      - name: "faculty"
+        label: "Faculty List"
+        file: "content/faculty.json"
+        fields:
+          - name: "items"
+            label: "Faculty"
+            widget: "list"
+            summary: "{{name}} — {{role}}"
+            fields:
+              - { name: "name", label: "Name", widget: "string" }
+              - { name: "role", label: "Subject / Role", widget: "string" }
+              - { name: "initials", label: "Initials (for avatar)", widget: "string" }
+              - { name: "note", label: "Short Note", widget: "text" }
