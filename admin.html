@@ -94,21 +94,38 @@
     <img src="assets/logo.png" alt="logo" onerror="this.style.display='none'">
     <h1>BAEMS STUDY — Admin</h1>
   </div>
-  <span class="status off mono" id="connStatus">Not connected</span>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span class="status off mono" id="connStatus">Not connected</span>
+    <button class="icon-btn" id="gearBtn" title="Connection setup" onclick="toggleSetup()" style="display:none;">⚙</button>
+    <button class="btn btn-outline btn-sm" id="logoutBtn" onclick="logout()" style="display:none;">Log out</button>
+  </div>
 </header>
 
 <main>
 
-  <div class="card" id="setupCard">
-    <h2>Connect</h2>
+  <div class="card" id="loginCard" style="max-width:380px; margin:60px auto;">
+    <h2>Admin Log In</h2>
+    <p class="hint">Staff login for BAEMS STUDY content management.</p>
+    <label>Username</label>
+    <input type="text" id="loginUser" autocomplete="username">
+    <label>Password</label>
+    <input type="password" id="loginPass" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
+    <div class="actions">
+      <button class="btn btn-primary" onclick="doLogin()" style="width:100%; justify-content:center;">Log In</button>
+    </div>
+    <p class="small-note" id="loginError" style="color:var(--danger); display:none;"></p>
+  </div>
+
+  <div class="card" id="setupCard" style="display:none;">
+    <h2>Connection Setup <span class="small-note">(one-time, per device)</span></h2>
     <p class="hint">
-      This admin tool talks directly to GitHub and Cloudinary from your browser — nothing is stored on a server in between. Your token is saved only in this browser's local storage.
-      You'll need: <b>1)</b> a GitHub token with write access to <span class="mono">baems82-83/baems</span>, and <b>2)</b> a Cloudinary unsigned upload preset. See the setup notes below the form if you haven't made these yet.
+      This admin tool talks directly to GitHub and Cloudinary from your browser — nothing passes through any other server. These details are saved only in this browser's local storage.
+      You'll need: <b>1)</b> a GitHub token with write access to <span class="mono">baems82-83/baems</span>, and <b>2)</b> a Cloudinary unsigned upload preset.
     </p>
     <div class="setup-grid">
       <div>
         <label>GitHub Personal Access Token</label>
-        <input type="password" id="ghToken" placeholder="ghp_...">
+        <input type="password" id="ghToken" placeholder="github_pat_...">
         <label>Repository</label>
         <input type="text" id="ghRepo" value="baems82-83/baems">
         <label>Branch</label>
@@ -118,13 +135,13 @@
         <label>Cloudinary Cloud Name</label>
         <input type="text" id="cldCloud" value="tvp2hzjn">
         <label>Cloudinary Unsigned Upload Preset</label>
-        <input type="text" id="cldPreset" placeholder="e.g. baems_unsigned">
+        <input type="text" id="cldPreset" placeholder="e.g. ml_default" value="ml_default">
         <p class="small-note">Create this once in Cloudinary → Settings → Upload → Upload presets → Add upload preset → Signing mode: <b>Unsigned</b>. Copy its name here.</p>
       </div>
     </div>
     <div class="actions">
-      <button class="btn btn-primary" onclick="connect()">Connect &amp; Load</button>
-      <button class="btn btn-outline btn-sm" onclick="disconnect()">Forget credentials on this device</button>
+      <button class="btn btn-primary" onclick="connect()">Save Connection &amp; Load</button>
+      <button class="btn btn-outline btn-sm" onclick="disconnect()">Forget connection on this device</button>
     </div>
     <p class="small-note">
       GitHub token: Settings → Developer settings → Personal access tokens → Fine-grained tokens → New token → limit repository access to just <span class="mono">baems</span> → Permissions → Contents: <b>Read and write</b>.
@@ -136,6 +153,7 @@
       <button class="tab active" data-tab="settings" onclick="showTab('settings')">Site Settings</button>
       <button class="tab" data-tab="notices" onclick="showTab('notices')">Notices</button>
       <button class="tab" data-tab="faculty" onclick="showTab('faculty')">Faculty</button>
+      <button class="tab" data-tab="students" onclick="showTab('students')">Students</button>
       <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="loadAll()">↻ Reload from GitHub</button>
     </div>
 
@@ -205,6 +223,22 @@
         </div>
       </div>
     </div>
+
+    <!-- STUDENTS -->
+    <div class="panel" id="panel-students">
+      <div class="card">
+        <h2>Students</h2>
+        <p class="hint">
+          Internal records only — <b>not shown anywhere on the public website</b>. Kept for your own reference (e.g. roll registers, future result lookups).
+          Since this data lives in a GitHub repo, make sure that repo is set to <b>Private</b> (Repo → Settings → Danger Zone → Change visibility) before entering real student names here.
+        </p>
+        <div id="studentsList"></div>
+        <div class="actions">
+          <button class="btn btn-outline" onclick="addStudent()">+ Add Student</button>
+          <button class="btn btn-primary" onclick="saveStudents()">Save Students</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 </main>
@@ -212,10 +246,17 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  // NOTE: this is a basic front-door gate, not real security — anyone who views this file's
+  // source can read these values. It just keeps casual visitors out; the actual write access
+  // is protected by the GitHub token entered in Connection Setup, which is what really matters.
+  const ADMIN_USERNAME = 'admin';
+  const ADMIN_PASSWORD = 'baems2063';
+
   const LS_KEY = 'baems_admin_creds_v1';
+  const SESSION_KEY = 'baems_admin_logged_in';
   let creds = null;
-  let shas = { settings: null, notices: null, faculty: null };
-  let data = { settings: {}, notices: { items: [] }, faculty: { items: [] } };
+  let shas = { settings: null, notices: null, faculty: null, students: null };
+  let data = { settings: {}, notices: { items: [] }, faculty: { items: [] }, students: { items: [] } };
 
   function toast(msg, ok=true){
     const t = document.getElementById('toast');
@@ -243,15 +284,58 @@
     el.className = 'mono status ' + (on ? 'on' : 'off');
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
+  function doLogin(){
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value;
+    const errEl = document.getElementById('loginError');
+    if(u === ADMIN_USERNAME && p === ADMIN_PASSWORD){
+      errEl.style.display = 'none';
+      sessionStorage.setItem(SESSION_KEY, '1');
+      enterApp();
+    }else{
+      errEl.textContent = 'Wrong username or password.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  function logout(){
+    sessionStorage.removeItem(SESSION_KEY);
+    document.getElementById('loginCard').style.display = 'block';
+    document.getElementById('setupCard').style.display = 'none';
+    document.getElementById('workArea').style.display = 'none';
+    document.getElementById('gearBtn').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('loginPass').value = '';
+  }
+
+  function toggleSetup(){
+    const el = document.getElementById('setupCard');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  async function enterApp(){
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('gearBtn').style.display = 'inline-block';
+    document.getElementById('logoutBtn').style.display = 'inline-block';
+
     const saved = loadCredsFromStorage();
-    if(saved){
+    if(saved && saved.token){
       document.getElementById('ghToken').value = saved.token || '';
       document.getElementById('ghRepo').value = saved.repo || 'baems82-83/baems';
       document.getElementById('ghBranch').value = saved.branch || 'main';
       document.getElementById('cldCloud').value = saved.cloud || 'tvp2hzjn';
-      document.getElementById('cldPreset').value = saved.preset || '';
-      if(saved.token) connect(true);
+      document.getElementById('cldPreset').value = saved.preset || 'ml_default';
+      await connect(true);
+    }else{
+      // first time on this device — show the one-time connection setup
+      document.getElementById('setupCard').style.display = 'block';
+      toast('First time on this device — fill in Connection Setup below.');
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if(sessionStorage.getItem(SESSION_KEY) === '1'){
+      enterApp();
     }
   });
 
@@ -271,6 +355,7 @@
     const ok = await loadAll();
     if(ok){
       setConnStatus(true);
+      document.getElementById('setupCard').style.display = 'none';
       document.getElementById('workArea').style.display = 'block';
       if(!silent) toast('Connected. Content loaded from GitHub.');
     }
@@ -281,7 +366,8 @@
     creds = null;
     setConnStatus(false);
     document.getElementById('workArea').style.display = 'none';
-    toast('Credentials cleared from this browser.');
+    document.getElementById('setupCard').style.display = 'block';
+    toast('Connection forgotten on this device.');
   }
 
   function ghHeaders(){
@@ -331,6 +417,16 @@
       data.notices = n.content;  shas.notices  = n.sha;
       data.faculty = f.content;  shas.faculty  = f.sha;
       renderSettings(); renderNotices(); renderFaculty();
+
+      // students.json is optional — tolerate it not existing yet in the repo
+      try{
+        const st = await ghGetFile('content/students.json');
+        data.students = st.content; shas.students = st.sha;
+      }catch(err){
+        data.students = { items: [] }; shas.students = null;
+      }
+      renderStudents();
+
       return true;
     }catch(e){
       toast(e.message, false);
@@ -494,18 +590,65 @@
     }catch(e){ toast(e.message, false); }
   }
 
+  // ---- Students (internal only — not shown on the public site) ----
+  function renderStudents(){
+    const list = document.getElementById('studentsList');
+    if(!list) return;
+    list.innerHTML = '';
+    (data.students.items || []).forEach((st, i) => list.appendChild(studentItemEl(st, i)));
+  }
+
+  function studentItemEl(st, i){
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <div class="item-top">
+        <span class="idx mono">#${i+1}</span>
+        <div class="item-controls">
+          <button class="icon-btn" title="Move up" onclick="moveItem('students',${i},-1)">↑</button>
+          <button class="icon-btn" title="Move down" onclick="moveItem('students',${i},1)">↓</button>
+          <button class="icon-btn" title="Delete" onclick="deleteItem('students',${i})">✕</button>
+        </div>
+      </div>
+      <div class="row2">
+        <div><label>Full Name</label><input type="text" value="${escapeAttr(st.name)}" oninput="updateStudent(${i},'name',this.value)"></div>
+        <div><label>Roll No.</label><input type="text" value="${escapeAttr(st.roll_no)}" oninput="updateStudent(${i},'roll_no',this.value)"></div>
+      </div>
+      <div class="row2">
+        <div><label>Class / Section</label><input type="text" placeholder="e.g. 12 - B" value="${escapeAttr(st.class_section)}" oninput="updateStudent(${i},'class_section',this.value)"></div>
+        <div><label>Major</label><input type="text" placeholder="e.g. Physics/Math" value="${escapeAttr(st.major)}" oninput="updateStudent(${i},'major',this.value)"></div>
+      </div>
+      <label>Guardian Phone (optional)</label>
+      <input type="text" value="${escapeAttr(st.guardian_phone)}" oninput="updateStudent(${i},'guardian_phone',this.value)">
+    `;
+    return div;
+  }
+
+  function updateStudent(i, field, val){ data.students.items[i][field] = val; }
+  function addStudent(){
+    data.students.items.push({ name:'', roll_no:'', class_section:'', major:'', guardian_phone:'' });
+    renderStudents();
+  }
+  async function saveStudents(){
+    try{
+      shas.students = await ghPutFile('content/students.json', data.students, shas.students, 'Update students');
+      toast('Students saved.');
+    }catch(e){ toast(e.message, false); }
+  }
+
   // ---- shared list helpers ----
+  const RENDERERS = { notices: renderNotices, faculty: renderFaculty, students: renderStudents };
   function moveItem(coll, i, dir){
     const arr = data[coll].items;
     const j = i + dir;
     if(j < 0 || j >= arr.length) return;
     [arr[i], arr[j]] = [arr[j], arr[i]];
-    coll === 'notices' ? renderNotices() : renderFaculty();
+    RENDERERS[coll]();
   }
   function deleteItem(coll, i){
     if(!confirm('Delete this item? This only takes effect after you click Save.')) return;
     data[coll].items.splice(i, 1);
-    coll === 'notices' ? renderNotices() : renderFaculty();
+    RENDERERS[coll]();
   }
 
   function escapeHTML(str){
