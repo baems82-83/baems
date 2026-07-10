@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>BAEMS STUDY — Admin</title>
+<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#182352; --paper:#faf3da; --paper-2:#f1e3ac;
+    --lab:#22306e; --lab-light:#354793; --amber:#c1451f; --slate:#1f9fc4;
+    --line: rgba(24,35,82,0.18); --white:#fffdf6;
+    --danger:#b7291f; --ok:#1d7a4c;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans',sans-serif;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:700; margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  header{
+    background:var(--ink); color:var(--white); padding:18px 24px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  header .title{display:flex; align-items:center; gap:12px;}
+  header img{width:36px; height:36px; border-radius:50%; background:var(--white); padding:2px;}
+  header h1{font-size:19px; color:var(--white);}
+  header .status{font-size:12px; font-family:'IBM Plex Mono',monospace; padding:5px 10px; border-radius:3px;}
+  .status.on{background:#1d7a4c33; color:#8ee6b4;}
+  .status.off{background:#b7291f33; color:#ffb3ac;}
+  main{max-width:960px; margin:0 auto; padding:28px 20px 80px;}
+  .card{background:var(--white); border:1px solid var(--line); border-radius:6px; padding:24px; margin-bottom:22px;}
+  .card h2{font-size:20px; margin-bottom:6px;}
+  .card .hint{font-size:13px; color:#565f6b; margin:0 0 18px; line-height:1.5;}
+  label{font-size:12px; text-transform:uppercase; letter-spacing:0.04em; color:#4a524d; display:block; margin:14px 0 5px;}
+  label:first-child{margin-top:0;}
+  input[type=text], input[type=password], textarea, select{
+    width:100%; padding:10px 12px; border:1px solid var(--ink); border-radius:3px;
+    font-family:'IBM Plex Sans',sans-serif; font-size:14px; background:var(--white); color:var(--ink);
+  }
+  textarea{resize:vertical; min-height:70px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:3px;
+    font-weight:600; font-size:14px; border:1.5px solid var(--ink); cursor:pointer; background:transparent; color:var(--ink);
+  }
+  .btn-primary{background:var(--amber); border-color:var(--amber); color:#221605;}
+  .btn-primary:hover{background:#a83a19;}
+  .btn-outline:hover{background:var(--ink); color:var(--paper);}
+  .btn-danger{border-color:var(--danger); color:var(--danger);}
+  .btn-danger:hover{background:var(--danger); color:var(--white);}
+  .btn-sm{padding:6px 12px; font-size:12.5px;}
+  .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+  .tabs{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;}
+  .tab{
+    padding:9px 18px; border-radius:20px; border:1.5px solid var(--ink); background:transparent;
+    font-weight:600; font-size:13.5px; cursor:pointer; color:var(--ink);
+  }
+  .tab.active{background:var(--ink); color:var(--paper);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .item{
+    border:1px solid var(--line); border-radius:5px; padding:16px; margin-bottom:14px; position:relative; background:#fffef9;
+  }
+  .item-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;}
+  .item-top .idx{font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8a8060;}
+  .item-controls{display:flex; gap:6px;}
+  .icon-btn{
+    border:1px solid var(--line); background:var(--white); border-radius:3px; cursor:pointer;
+    width:28px; height:28px; font-size:13px; line-height:1;
+  }
+  .icon-btn:hover{background:var(--paper-2);}
+  .logo-preview{display:flex; align-items:center; gap:16px; margin-top:6px;}
+  .logo-preview img{width:64px; height:64px; object-fit:contain; border:1px solid var(--line); border-radius:6px; background:var(--white); padding:4px;}
+  .toast{
+    position:fixed; bottom:24px; right:24px; padding:13px 18px; border-radius:5px; font-size:13.5px;
+    max-width:340px; box-shadow:0 6px 16px rgba(0,0,0,0.2); display:none; z-index:99;
+  }
+  .toast.ok{background:var(--ok); color:#fff;}
+  .toast.err{background:var(--danger); color:#fff;}
+  .setup-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .small-note{font-size:12px; color:#7a7360; margin-top:6px;}
+  a{color:var(--slate);}
+  .spinner{display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media(max-width:640px){ .row2, .setup-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <img src="assets/logo.png" alt="logo" onerror="this.style.display='none'">
+    <h1>BAEMS STUDY — Admin</h1>
+  </div>
+  <span class="status off mono" id="connStatus">Not connected</span>
+</header>
+
+<main>
+
+  <div class="card" id="setupCard">
+    <h2>Connect</h2>
+    <p class="hint">
+      This admin tool talks directly to GitHub and Cloudinary from your browser — nothing is stored on a server in between. Your token is saved only in this browser's local storage.
+      You'll need: <b>1)</b> a GitHub token with write access to <span class="mono">baems82-83/baems</span>, and <b>2)</b> a Cloudinary unsigned upload preset. See the setup notes below the form if you haven't made these yet.
+    </p>
+    <div class="setup-grid">
+      <div>
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="ghToken" placeholder="ghp_...">
+        <label>Repository</label>
+        <input type="text" id="ghRepo" value="baems82-83/baems">
+        <label>Branch</label>
+        <input type="text" id="ghBranch" value="main">
+      </div>
+      <div>
+        <label>Cloudinary Cloud Name</label>
+        <input type="text" id="cldCloud" value="tvp2hzjn">
+        <label>Cloudinary Unsigned Upload Preset</label>
+        <input type="text" id="cldPreset" placeholder="e.g. baems_unsigned">
+        <p class="small-note">Create this once in Cloudinary → Settings → Upload → Upload presets → Add upload preset → Signing mode: <b>Unsigned</b>. Copy its name here.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="connect()">Connect &amp; Load</button>
+      <button class="btn btn-outline btn-sm" onclick="disconnect()">Forget credentials on this device</button>
+    </div>
+    <p class="small-note">
+      GitHub token: Settings → Developer settings → Personal access tokens → Fine-grained tokens → New token → limit repository access to just <span class="mono">baems</span> → Permissions → Contents: <b>Read and write</b>.
+    </p>
+  </div>
+
+  <div id="workArea" style="display:none;">
+    <div class="tabs">
+      <button class="tab active" data-tab="settings" onclick="showTab('settings')">Site Settings</button>
+      <button class="tab" data-tab="notices" onclick="showTab('notices')">Notices</button>
+      <button class="tab" data-tab="faculty" onclick="showTab('faculty')">Faculty</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="loadAll()">↻ Reload from GitHub</button>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel active" id="panel-settings">
+      <div class="card">
+        <h2>Site Settings</h2>
+        <p class="hint">Shown in the header, hero section, stats strip, contact section, and footer of the main site.</p>
+
+        <label>Logo</label>
+        <div class="logo-preview">
+          <img id="logoPreview" src="assets/logo.png" alt="logo preview">
+          <div>
+            <input type="file" id="logoFile" accept="image/*" onchange="uploadLogo(event)">
+            <div class="small-note" id="logoUploadStatus"></div>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div><label>Portal Name</label><input type="text" id="s_portal_name"></div>
+          <div><label>School Name</label><input type="text" id="s_school_name"></div>
+        </div>
+        <label>Hero Tagline</label>
+        <textarea id="s_tagline"></textarea>
+        <div class="row2">
+          <div><label>Address</label><input type="text" id="s_address"></div>
+          <div><label>Phone</label><input type="text" id="s_phone"></div>
+        </div>
+        <label>Email</label>
+        <input type="text" id="s_email">
+        <div class="row2">
+          <div><label>Established (B.S.)</label><input type="text" id="s_established_bs"></div>
+          <div><label>NEB Pass Rate</label><input type="text" id="s_pass_rate"></div>
+        </div>
+        <div class="row2">
+          <div><label>Faculty Count</label><input type="text" id="s_faculty_count"></div>
+          <div><label>Lab Hours / Week</label><input type="text" id="s_lab_hours"></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="saveSettings()">Save Site Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTICES -->
+    <div class="panel" id="panel-notices">
+      <div class="card">
+        <h2>Notice Board</h2>
+        <p class="hint">These appear as pinned cards on the Notices section of the site.</p>
+        <div id="noticesList"></div>
+        <div class="actions">
+          <button class="btn btn-outline" onclick="addNotice()">+ Add Notice</button>
+          <button class="btn btn-primary" onclick="saveNotices()">Save Notices</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FACULTY -->
+    <div class="panel" id="panel-faculty">
+      <div class="card">
+        <h2>Faculty</h2>
+        <p class="hint">These appear as faculty cards on the site.</p>
+        <div id="facultyList"></div>
+        <div class="actions">
+          <button class="btn btn-outline" onclick="addFaculty()">+ Add Faculty</button>
+          <button class="btn btn-primary" onclick="saveFaculty()">Save Faculty</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const LS_KEY = 'baems_admin_creds_v1';
+  let creds = null;
+  let shas = { settings: null, notices: null, faculty: null };
+  let data = { settings: {}, notices: { items: [] }, faculty: { items: [] } };
+
+  function toast(msg, ok=true){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (ok ? 'ok' : 'err');
+    t.style.display = 'block';
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => t.style.display = 'none', 4200);
+  }
+
+  function utf8ToB64(str){ return btoa(unescape(encodeURIComponent(str))); }
+  function b64ToUtf8(str){ return decodeURIComponent(escape(atob(str))); }
+
+  function loadCredsFromStorage(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ return null; }
+  }
+
+  function setConnStatus(on){
+    const el = document.getElementById('connStatus');
+    el.textContent = on ? 'Connected · ' + creds.repo : 'Not connected';
+    el.className = 'mono status ' + (on ? 'on' : 'off');
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const saved = loadCredsFromStorage();
+    if(saved){
+      document.getElementById('ghToken').value = saved.token || '';
+      document.getElementById('ghRepo').value = saved.repo || 'baems82-83/baems';
+      document.getElementById('ghBranch').value = saved.branch || 'main';
+      document.getElementById('cldCloud').value = saved.cloud || 'tvp2hzjn';
+      document.getElementById('cldPreset').value = saved.preset || '';
+      if(saved.token) connect(true);
+    }
+  });
+
+  async function connect(silent){
+    creds = {
+      token: document.getElementById('ghToken').value.trim(),
+      repo: document.getElementById('ghRepo').value.trim(),
+      branch: document.getElementById('ghBranch').value.trim() || 'main',
+      cloud: document.getElementById('cldCloud').value.trim(),
+      preset: document.getElementById('cldPreset').value.trim()
+    };
+    if(!creds.token || !creds.repo){
+      toast('Enter at least a GitHub token and repository.', false);
+      return;
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(creds));
+    const ok = await loadAll();
+    if(ok){
+      setConnStatus(true);
+      document.getElementById('workArea').style.display = 'block';
+      if(!silent) toast('Connected. Content loaded from GitHub.');
+    }
+  }
+
+  function disconnect(){
+    localStorage.removeItem(LS_KEY);
+    creds = null;
+    setConnStatus(false);
+    document.getElementById('workArea').style.display = 'none';
+    toast('Credentials cleared from this browser.');
+  }
+
+  function ghHeaders(){
+    return {
+      'Authorization': 'Bearer ' + creds.token,
+      'Accept': 'application/vnd.github+json'
+    };
+  }
+
+  async function ghGetFile(path){
+    const url = `https://api.github.com/repos/${creds.repo}/contents/${path}?ref=${encodeURIComponent(creds.branch)}`;
+    const res = await fetch(url, { headers: ghHeaders() });
+    if(!res.ok) throw new Error(`Could not read ${path} (${res.status}). Check token permissions and repo/branch name.`);
+    const json = await res.json();
+    return { content: JSON.parse(b64ToUtf8(json.content.replace(/\n/g,''))), sha: json.sha };
+  }
+
+  async function ghPutFile(path, obj, sha, message){
+    const url = `https://api.github.com/repos/${creds.repo}/contents/${path}`;
+    const body = {
+      message: message || `Update ${path} via BAEMS STUDY admin`,
+      content: utf8ToB64(JSON.stringify(obj, null, 2)),
+      branch: creds.branch
+    };
+    if(sha) body.sha = sha;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error(`Save failed (${res.status}): ${errText.slice(0,200)}`);
+    }
+    const json = await res.json();
+    return json.content.sha;
+  }
+
+  async function loadAll(){
+    try{
+      const [s, n, f] = await Promise.all([
+        ghGetFile('content/settings.json'),
+        ghGetFile('content/notices.json'),
+        ghGetFile('content/faculty.json')
+      ]);
+      data.settings = s.content; shas.settings = s.sha;
+      data.notices = n.content;  shas.notices  = n.sha;
+      data.faculty = f.content;  shas.faculty  = f.sha;
+      renderSettings(); renderNotices(); renderFaculty();
+      return true;
+    }catch(e){
+      toast(e.message, false);
+      setConnStatus(false);
+      return false;
+    }
+  }
+
+  function renderSettings(){
+    const s = data.settings;
+    const setVal = (id, val) => { document.getElementById(id).value = val || ''; };
+    setVal('s_portal_name', s.portal_name);
+    setVal('s_school_name', s.school_name);
+    setVal('s_tagline', s.tagline);
+    setVal('s_address', s.address);
+    setVal('s_phone', s.phone);
+    setVal('s_email', s.email);
+    setVal('s_established_bs', s.established_bs);
+    setVal('s_pass_rate', s.pass_rate);
+    setVal('s_faculty_count', s.faculty_count);
+    setVal('s_lab_hours', s.lab_hours);
+    if(s.logo) document.getElementById('logoPreview').src = s.logo;
+  }
+
+  async function saveSettings(){
+    const s = {
+      portal_name: document.getElementById('s_portal_name').value.trim(),
+      school_name: document.getElementById('s_school_name').value.trim(),
+      tagline: document.getElementById('s_tagline').value.trim(),
+      address: document.getElementById('s_address').value.trim(),
+      phone: document.getElementById('s_phone').value.trim(),
+      email: document.getElementById('s_email').value.trim(),
+      established_bs: document.getElementById('s_established_bs').value.trim(),
+      pass_rate: document.getElementById('s_pass_rate').value.trim(),
+      faculty_count: document.getElementById('s_faculty_count').value.trim(),
+      lab_hours: document.getElementById('s_lab_hours').value.trim(),
+      logo: document.getElementById('logoPreview').src
+    };
+    try{
+      shas.settings = await ghPutFile('content/settings.json', s, shas.settings, 'Update site settings');
+      data.settings = s;
+      toast('Site settings saved. Netlify will redeploy shortly.');
+    }catch(e){ toast(e.message, false); }
+  }
+
+  async function uploadLogo(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!creds.preset){
+      toast('Set a Cloudinary upload preset first (in the Connect panel).', false);
+      return;
+    }
+    const statusEl = document.getElementById('logoUploadStatus');
+    statusEl.textContent = 'Uploading…';
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', creds.preset);
+    try{
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${creds.cloud}/image/upload`, { method:'POST', body: fd });
+      const json = await res.json();
+      if(!json.secure_url) throw new Error(json.error?.message || 'Upload failed');
+      document.getElementById('logoPreview').src = json.secure_url;
+      statusEl.textContent = 'Uploaded ✓ — remember to click "Save Site Settings" below.';
+    }catch(err){
+      statusEl.textContent = '';
+      toast('Logo upload failed: ' + err.message, false);
+    }
+  }
+
+  // ---- Notices ----
+  function renderNotices(){
+    const list = document.getElementById('noticesList');
+    list.innerHTML = '';
+    (data.notices.items || []).forEach((n, i) => list.appendChild(noticeItemEl(n, i)));
+  }
+
+  function noticeItemEl(n, i){
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <div class="item-top">
+        <span class="idx mono">#${i+1}</span>
+        <div class="item-controls">
+          <button class="icon-btn" title="Move up" onclick="moveItem('notices',${i},-1)">↑</button>
+          <button class="icon-btn" title="Move down" onclick="moveItem('notices',${i},1)">↓</button>
+          <button class="icon-btn" title="Delete" onclick="deleteItem('notices',${i})">✕</button>
+        </div>
+      </div>
+      <label>Title</label>
+      <input type="text" value="${escapeAttr(n.title)}" oninput="updateNotice(${i},'title',this.value)">
+      <div class="row2">
+        <div>
+          <label>Tag</label>
+          <select onchange="updateNotice(${i},'tag',this.value)">
+            ${['Exam','Holiday','Notice'].map(t => `<option value="${t}" ${n.tag===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Date</label>
+          <input type="text" value="${escapeAttr(n.date)}" oninput="updateNotice(${i},'date',this.value)">
+        </div>
+      </div>
+      <label>Details</label>
+      <textarea oninput="updateNotice(${i},'body',this.value)">${escapeHTML(n.body)}</textarea>
+    `;
+    return div;
+  }
+
+  function updateNotice(i, field, val){ data.notices.items[i][field] = val; }
+  function addNotice(){
+    data.notices.items.push({ title:'New Notice', tag:'Notice', date:'Posted ' + new Date().toDateString(), body:'' });
+    renderNotices();
+  }
+  async function saveNotices(){
+    try{
+      shas.notices = await ghPutFile('content/notices.json', data.notices, shas.notices, 'Update notices');
+      toast('Notices saved. Netlify will redeploy shortly.');
+    }catch(e){ toast(e.message, false); }
+  }
+
+  // ---- Faculty ----
+  function renderFaculty(){
+    const list = document.getElementById('facultyList');
+    list.innerHTML = '';
+    (data.faculty.items || []).forEach((f, i) => list.appendChild(facultyItemEl(f, i)));
+  }
+
+  function facultyItemEl(f, i){
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <div class="item-top">
+        <span class="idx mono">#${i+1}</span>
+        <div class="item-controls">
+          <button class="icon-btn" title="Move up" onclick="moveItem('faculty',${i},-1)">↑</button>
+          <button class="icon-btn" title="Move down" onclick="moveItem('faculty',${i},1)">↓</button>
+          <button class="icon-btn" title="Delete" onclick="deleteItem('faculty',${i})">✕</button>
+        </div>
+      </div>
+      <div class="row2">
+        <div><label>Name</label><input type="text" value="${escapeAttr(f.name)}" oninput="updateFaculty(${i},'name',this.value)"></div>
+        <div><label>Initials</label><input type="text" value="${escapeAttr(f.initials)}" oninput="updateFaculty(${i},'initials',this.value)"></div>
+      </div>
+      <label>Subject / Role</label>
+      <input type="text" value="${escapeAttr(f.role)}" oninput="updateFaculty(${i},'role',this.value)">
+      <label>Short Note</label>
+      <textarea oninput="updateFaculty(${i},'note',this.value)">${escapeHTML(f.note)}</textarea>
+    `;
+    return div;
+  }
+
+  function updateFaculty(i, field, val){ data.faculty.items[i][field] = val; }
+  function addFaculty(){
+    data.faculty.items.push({ name:'New Teacher', role:'', initials:'', note:'' });
+    renderFaculty();
+  }
+  async function saveFaculty(){
+    try{
+      shas.faculty = await ghPutFile('content/faculty.json', data.faculty, shas.faculty, 'Update faculty');
+      toast('Faculty saved. Netlify will redeploy shortly.');
+    }catch(e){ toast(e.message, false); }
+  }
+
+  // ---- shared list helpers ----
+  function moveItem(coll, i, dir){
+    const arr = data[coll].items;
+    const j = i + dir;
+    if(j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    coll === 'notices' ? renderNotices() : renderFaculty();
+  }
+  function deleteItem(coll, i){
+    if(!confirm('Delete this item? This only takes effect after you click Save.')) return;
+    data[coll].items.splice(i, 1);
+    coll === 'notices' ? renderNotices() : renderFaculty();
+  }
+
+  function escapeHTML(str){
+    return String(str || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  }
+  function escapeAttr(str){
+    return String(str || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+
+  function showTab(name){
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+  }
+</script>
+
+</body>
+</html>
