@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BAEMS STUDY | Bageshwari Academy E.M. School — +2 Science, Kohalpur, Banke</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <!-- Primary SEO -->
 <meta name="description" content="BAEMS STUDY is the official +2 Science portal of Bageshwari Academy E.M. School, Kohalpur-10, Banke. NEB-affiliated Physics, Chemistry, Biology, Computer Science and Mathematics with CEE/IOE/IOM entrance preparation. Check notices, routines and results online.">
@@ -648,24 +649,18 @@
     return false;
   }
 
-  // ---- Content loaded from /content/*.json (editable via /admin) ----
-  async function loadJSON(path){
-    try{
-      const res = await fetch(path, {cache:'no-store'});
-      if(!res.ok) return null;
-      return await res.json();
-    }catch(err){
-      return null; // e.g. opened via file:// — fall back to the static markup already in the page
-    }
-  }
+  // ---- Content loaded from Supabase (editable via /admin.html) ----
+  const SUPABASE_URL = 'https://xbmdumntkpxafswhbgvb.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWR1bW50a3B4YWZzd2hiZ3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NTU0OTgsImV4cCI6MjA5OTMzMTQ5OH0.savMSYTicFxTYbrzrxPeZGLuyNAnNN1ykJL1CpNBmTA';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   function escapeHTML(str){
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
   async function loadSettings(){
-    const s = await loadJSON('content/settings.json');
-    if(!s) return;
+    const { data: s, error } = await sb.from('settings').select('*').eq('id',1).single();
+    if(error || !s) return;
     const setText = (id, val) => { const el = document.getElementById(id); if(el && val) el.textContent = val; };
     setText('brandName', s.portal_name);
     setText('brandSub', s.school_name);
@@ -677,9 +672,9 @@
     setText('contactAddress', s.address);
     setText('contactPhone', s.phone);
     setText('contactEmail', s.email);
-    if(s.logo){
+    if(s.logo_url){
       const logoEl = document.getElementById('brandLogo');
-      if(logoEl) logoEl.src = s.logo;
+      if(logoEl) logoEl.src = s.logo_url;
     }
     if(s.school_name || s.address){
       const footer = document.getElementById('footerText');
@@ -689,11 +684,11 @@
   }
 
   async function loadNotices(){
-    const data = await loadJSON('content/notices.json');
-    if(!data || !Array.isArray(data.items) || !data.items.length) return;
+    const { data: items, error } = await sb.from('notices').select('*').order('sort_order');
+    if(error || !items || !items.length) return;
     const board = document.getElementById('noticeBoard');
     if(!board) return;
-    board.innerHTML = data.items.map(n => {
+    board.innerHTML = items.map(n => {
       const cls = (n.tag || '').toLowerCase() === 'exam' ? 'exam' : (n.tag || '').toLowerCase() === 'holiday' ? 'holiday' : '';
       return `<div class="pin-card ${cls}"><span class="pin"></span>
         <span class="pin-tag">${escapeHTML(n.tag || 'Notice')}</span>
@@ -705,11 +700,11 @@
   }
 
   async function loadFaculty(){
-    const data = await loadJSON('content/faculty.json');
-    if(!data || !Array.isArray(data.items) || !data.items.length) return;
+    const { data: items, error } = await sb.from('faculty').select('*').order('sort_order');
+    if(error || !items || !items.length) return;
     const grid = document.getElementById('facultyGrid');
     if(!grid) return;
-    grid.innerHTML = data.items.map(f => `
+    grid.innerHTML = items.map(f => `
       <div class="faculty-card">
         <div class="avatar">${escapeHTML(f.initials || (f.name || '?').slice(0,2).toUpperCase())}</div>
         <div class="fname">${escapeHTML(f.name || '')}</div>
@@ -722,10 +717,9 @@
   let galleryFilter = 'All';
 
   async function loadGallery(){
-    const dat = await loadJSON('content/gallery.json');
-    if(!dat || !Array.isArray(dat.items)) return;
-    galleryItems = dat.items;
-    if(!galleryItems.length) return;
+    const { data: items, error } = await sb.from('gallery').select('*').order('sort_order');
+    if(error || !items || !items.length) return;
+    galleryItems = items;
     const cats = ['All', ...new Set(galleryItems.map(g => g.category).filter(Boolean))];
     const filterWrap = document.getElementById('galleryFilters');
     filterWrap.innerHTML = cats.map(c => `<button class="gfilter${c==='All'?' active':''}" data-cat="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join('');

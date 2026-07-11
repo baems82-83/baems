@@ -103,14 +103,10 @@
 <main>
 
   <div class="card" id="loginCard" style="max-width:380px; margin:60px auto;">
-    <h2>Log In</h2>
-    <p class="hint">Staff login for BAEMS STUDY content management.</p>
-    <div class="tabs" style="margin-bottom:4px;">
-      <button class="tab active" id="roleAdminBtn" onclick="setLoginRole('admin')">Admin</button>
-      <button class="tab" id="roleTeacherBtn" onclick="setLoginRole('teacher')">Teacher</button>
-    </div>
-    <label>Username</label>
-    <input type="text" id="loginUser" autocomplete="username">
+    <h2>Staff Log In</h2>
+    <p class="hint">Admin and Teacher accounts both log in here with the email + password created in Supabase. Which tabs you see depends on your assigned role.</p>
+    <label>Email</label>
+    <input type="text" id="loginEmail" autocomplete="username">
     <label>Password</label>
     <input type="password" id="loginPass" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
     <div class="actions">
@@ -128,7 +124,7 @@
       <button class="tab" data-tab="staff" data-role="admin" onclick="showTab('staff')">Staff Accounts</button>
       <button class="tab" data-tab="gallery" data-role="any" onclick="showTab('gallery')">Gallery</button>
       <button class="tab" data-tab="resources" data-role="any" onclick="showTab('resources')">Resources</button>
-      <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="loadAll()">↻ Reload from GitHub</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="loadAll()">↻ Reload</button>
     </div>
 
     <!-- SETTINGS -->
@@ -203,8 +199,7 @@
       <div class="card">
         <h2>Students</h2>
         <p class="hint">
-          Not shown as a public "directory" page, but <b>this file is fetched directly by the Student Portal login</b>, which means it's served publicly by Netlify no matter whether the GitHub repo is public or private — that part is unavoidable with a backend-free site.
-          Passwords are stored as scrambled hashes (not plain text), so this data isn't fully invisible, but casual viewers can't read passwords directly. Avoid adding anything more sensitive than name, roll number, class/section, and major.
+          Internal only — not shown on the public site. Passwords are hashed server-side by the database (bcrypt via pgcrypto), never sent to or stored in plain text by the browser.
         </p>
         <div id="studentsList"></div>
         <div class="actions">
@@ -217,15 +212,15 @@
     <!-- STAFF ACCOUNTS (admin-only) -->
     <div class="panel" id="panel-staff">
       <div class="card">
-        <h2>Staff (Teacher) Accounts</h2>
+        <h2>Staff Accounts (Admin / Teacher roles)</h2>
         <p class="hint">
-          Create login accounts for teachers. Teachers log in on this same page (choose "Teacher" at login) and get the Gallery and Resources tabs only — not Site Settings, Notices, Faculty, or Students.
-          <br><b>Important:</b> a teacher's save uses the same GitHub token embedded in this file — the tab restriction is a UI convenience, not a hard security wall. Only give teacher logins to people you'd trust with full admin access too.
+          To create a new login: Supabase Dashboard → <b>Authentication → Users → Add user</b> (real email + password), then copy that user's UUID and add a row here with their role.
+          This tab only manages <i>roles</i> — it can't create the login itself (that needs the Supabase dashboard, for security reasons).
         </p>
         <div id="staffList"></div>
         <div class="actions">
-          <button class="btn btn-outline" onclick="addStaff()">+ Add Teacher Account</button>
-          <button class="btn btn-primary" onclick="saveStaff()">Save Staff Accounts</button>
+          <button class="btn btn-outline" onclick="addStaff()">+ Add Role Row</button>
+          <button class="btn btn-primary" onclick="saveStaff()">Save Staff Roles</button>
         </div>
       </div>
     </div>
@@ -249,12 +244,14 @@
         <h2>Learning Resources</h2>
         <p class="hint">Files students see in the Student Portal, organized by subject. Upload PDFs, Word docs, PowerPoint slides, or images.</p>
         <label>Subject</label>
-        <select id="resourceSubjectSelect" onchange="renderResourceFiles()"></select>
+        <select id="resourceSubjectSelect" onchange="renderResourceFiles()">
+          <option>Physics</option><option>Chemistry</option><option>Biology</option>
+          <option>Mathematics</option><option>Computer Science</option><option>English</option><option>Nepali</option>
+        </select>
         <div id="resourceFilesList" style="margin-top:16px;"></div>
         <div class="actions">
           <input type="file" id="resourceFileInput" style="display:none;" onchange="uploadResourceFile(event)">
           <button class="btn btn-outline" onclick="document.getElementById('resourceFileInput').click()">+ Upload File</button>
-          <button class="btn btn-primary" onclick="saveResources()">Save Resources</button>
         </div>
         <p class="small-note" id="resourceUploadStatus"></p>
       </div>
@@ -265,33 +262,18 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-  // ============================================================================
-  // ⚠️ SECURITY WARNING — READ BEFORE EDITING
-  // The GitHub token below is embedded directly in this file. Since admin.html
-  // is served publicly by Netlify, ANYONE who visits /admin.html and views the
-  // page source (or opens browser dev tools) can read this token and get write
-  // access to the "baems82-83/baems" repository. This is not a "technical users
-  // only" risk — it is fully public. Only put a token here that is scoped to
-  // ONLY this one repository (fine-grained token, Contents: Read and write, no
-  // other repos, no other permissions) so the worst case is limited to this
-  // repo's files, not your whole GitHub account.
-  // ============================================================================
-  const GH_CONFIG = {
-    token: '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',   // github_pat_...
-    repo: 'baems82-83/baems',
-    branch: 'main',
-    cloud: 'tvp2hzjn',
-    preset: 'ml_default'
-  };
+  const SUPABASE_URL = 'https://xbmdumntkpxafswhbgvb.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWR1bW50a3B4YWZzd2hiZ3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NTU0OTgsImV4cCI6MjA5OTMzMTQ5OH0.savMSYTicFxTYbrzrxPeZGLuyNAnNN1ykJL1CpNBmTA';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const BUCKET = 'baems-files';
 
-  const SESSION_KEY = 'baems_admin_logged_in';
-  const SESSION_ROLE_KEY = 'baems_admin_role';
-  let creds = null;
-  let loginRole = 'admin';
   let currentRole = 'admin';
-  let shas = { settings: null, notices: null, faculty: null, students: null, staff: null, gallery: null, resources: null };
-  let data = { settings: {}, notices: { items: [] }, faculty: { items: [] }, students: { items: [] }, staff: { items: [] }, gallery: { items: [] }, resources: { subjects: [] } };
+  let data = {
+    settings: {}, notices: [], faculty: [], students: [], staff: [], gallery: [],
+    resources: {} // { Physics: [...], Chemistry: [...], ... }
+  };
 
   function toast(msg, ok=true){
     const t = document.getElementById('toast');
@@ -299,198 +281,122 @@
     t.className = 'toast ' + (ok ? 'ok' : 'err');
     t.style.display = 'block';
     clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(() => t.style.display = 'none', 4200);
-  }
-
-  function utf8ToB64(str){ return btoa(unescape(encodeURIComponent(str))); }
-  function b64ToUtf8(str){ return decodeURIComponent(escape(atob(str))); }
-  async function sha256Hex(str){
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  }
-  async function plainFetchJSON(path){
-    const res = await fetch(path, { cache: 'no-store' });
-    if(!res.ok) throw new Error('Could not load ' + path);
-    return res.json();
+    window._toastTimer = setTimeout(() => t.style.display = 'none', 4500);
   }
 
   function setConnStatus(on){
     const el = document.getElementById('connStatus');
-    el.textContent = on ? 'Connected · ' + creds.repo + ' · ' + currentRole : 'Not connected';
+    el.textContent = on ? 'Connected · ' + currentRole : 'Not connected';
     el.className = 'mono status ' + (on ? 'on' : 'off');
   }
 
-  function setLoginRole(role){
-    loginRole = role;
-    document.getElementById('roleAdminBtn').classList.toggle('active', role === 'admin');
-    document.getElementById('roleTeacherBtn').classList.toggle('active', role === 'teacher');
-  }
+  function escapeHTML(str){ return String(str||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function escapeAttr(str){ return String(str||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+  // ---------------- AUTH ----------------
   async function doLogin(){
-    const u = document.getElementById('loginUser').value.trim();
-    const p = document.getElementById('loginPass').value;
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPass').value;
     const errEl = document.getElementById('loginError');
     errEl.style.display = 'none';
-
-    if(loginRole === 'admin'){
-      // NOTE: this is a basic front-door gate, not real security — anyone who views this file's
-      // source can read these values. It just keeps casual visitors out; the actual write access
-      // is protected by the GitHub token in GH_CONFIG above, which is what really matters.
-      if(u === 'admin' && p === 'baems2063'){
-        sessionStorage.setItem(SESSION_KEY, '1');
-        sessionStorage.setItem(SESSION_ROLE_KEY, 'admin');
-        enterApp('admin');
-        return;
-      }
-      errEl.textContent = 'Wrong username or password.';
+    if(!email || !password){
+      errEl.textContent = 'Enter both email and password.';
       errEl.style.display = 'block';
       return;
     }
-
-    // Teacher login — checked against content/teachers.json (public file, hashed passwords)
-    try{
-      const teachers = await plainFetchJSON('content/teachers.json');
-      const hash = await sha256Hex(p);
-      const match = (teachers.items || []).find(t => t.username === u && t.password_hash === hash);
-      if(!match){
-        errEl.textContent = 'Wrong username or password.';
-        errEl.style.display = 'block';
-        return;
-      }
-      sessionStorage.setItem(SESSION_KEY, '1');
-      sessionStorage.setItem(SESSION_ROLE_KEY, 'teacher');
-      enterApp('teacher');
-    }catch(e){
-      errEl.textContent = 'Could not check teacher accounts — try again shortly.';
+    const { data: authData, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){
+      errEl.textContent = error.message;
       errEl.style.display = 'block';
+      return;
     }
+    await afterLogin();
   }
 
-  function logout(){
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_ROLE_KEY);
-    document.getElementById('loginCard').style.display = 'block';
-    document.getElementById('workArea').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'none';
-    document.getElementById('loginPass').value = '';
+  async function afterLogin(){
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user) return;
+    const { data: roleRow, error } = await sb.from('staff_roles').select('role,name').eq('user_id', user.id).maybeSingle();
+    if(error || !roleRow){
+      toast('Logged in, but no role is assigned yet. Ask an Admin to add your account under Staff Accounts.', false);
+      await sb.auth.signOut();
+      return;
+    }
+    currentRole = roleRow.role;
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'inline-block';
+    applyRoleVisibility(currentRole);
+    setConnStatus(true);
+    document.getElementById('workArea').style.display = 'block';
+    await loadAll();
   }
 
   function applyRoleVisibility(role){
     document.querySelectorAll('.tab[data-role]').forEach(t => {
       t.style.display = (t.dataset.role === 'admin' && role !== 'admin') ? 'none' : 'inline-flex';
     });
-    if(role !== 'admin'){
-      showTab('gallery');
-    }
+    if(role !== 'admin') showTab('gallery');
   }
 
-  async function enterApp(role){
-    currentRole = role || sessionStorage.getItem(SESSION_ROLE_KEY) || 'admin';
-    document.getElementById('loginCard').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'inline-block';
-    applyRoleVisibility(currentRole);
-    await connect();
+  async function logout(){
+    await sb.auth.signOut();
+    document.getElementById('loginCard').style.display = 'block';
+    document.getElementById('workArea').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('loginPass').value = '';
+    setConnStatus(false);
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
-    if(sessionStorage.getItem(SESSION_KEY) === '1'){
-      enterApp(sessionStorage.getItem(SESSION_ROLE_KEY) || 'admin');
-    }
+  window.addEventListener('DOMContentLoaded', async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if(session) await afterLogin();
   });
 
-  async function connect(){
-    creds = { ...GH_CONFIG };
-    if(!creds.token || creds.token.indexOf('PASTE_YOUR') === 0){
-      toast('No GitHub token has been set up in this file yet — see admin.html\'s GH_CONFIG.', false);
-      return;
-    }
-    const ok = await loadAll();
-    if(ok){
-      setConnStatus(true);
-      document.getElementById('workArea').style.display = 'block';
-    }
+  // ---------------- STORAGE UPLOAD HELPER ----------------
+  async function uploadToStorage(file, folder){
+    const path = folder + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+    if(error) throw error;
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    return pub.publicUrl;
   }
 
-  function ghHeaders(){
-    return {
-      'Authorization': 'Bearer ' + creds.token,
-      'Accept': 'application/vnd.github+json'
-    };
-  }
-
-  async function ghGetFile(path){
-    const url = `https://api.github.com/repos/${creds.repo}/contents/${path}?ref=${encodeURIComponent(creds.branch)}`;
-    const res = await fetch(url, { headers: ghHeaders() });
-    if(!res.ok) throw new Error(`Could not read ${path} (${res.status}). Check token permissions and repo/branch name.`);
-    const json = await res.json();
-    return { content: JSON.parse(b64ToUtf8(json.content.replace(/\n/g,''))), sha: json.sha };
-  }
-
-  async function ghPutFile(path, obj, sha, message){
-    const url = `https://api.github.com/repos/${creds.repo}/contents/${path}`;
-    const body = {
-      message: message || `Update ${path} via BAEMS STUDY admin`,
-      content: utf8ToB64(JSON.stringify(obj, null, 2)),
-      branch: creds.branch
-    };
-    if(sha) body.sha = sha;
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if(!res.ok){
-      const errText = await res.text();
-      throw new Error(`Save failed (${res.status}): ${errText.slice(0,200)}`);
-    }
-    const json = await res.json();
-    return json.content.sha;
-  }
-
-  async function loadOptional(path, fallback){
-    try{
-      const r = await ghGetFile(path);
-      return { content: r.content, sha: r.sha };
-    }catch(err){
-      return { content: fallback, sha: null };
-    }
-  }
-
+  // ---------------- LOAD ALL ----------------
   async function loadAll(){
     try{
-      const [s, n, f] = await Promise.all([
-        ghGetFile('content/settings.json'),
-        ghGetFile('content/notices.json'),
-        ghGetFile('content/faculty.json')
+      const [s, n, f, st, sf, gl, rs] = await Promise.all([
+        sb.from('settings').select('*').eq('id',1).single(),
+        sb.from('notices').select('*').order('sort_order'),
+        sb.from('faculty').select('*').order('sort_order'),
+        sb.from('students').select('*').order('id'),
+        sb.from('staff_roles').select('*'),
+        sb.from('gallery').select('*').order('sort_order'),
+        sb.from('resources').select('*').order('id')
       ]);
-      data.settings = s.content; shas.settings = s.sha;
-      data.notices = n.content;  shas.notices  = n.sha;
-      data.faculty = f.content;  shas.faculty  = f.sha;
-      renderSettings(); renderNotices(); renderFaculty();
-
-      const [st, sf, gl, rs] = await Promise.all([
-        loadOptional('content/students.json', { items: [] }),
-        loadOptional('content/teachers.json', { items: [] }),
-        loadOptional('content/gallery.json', { items: [] }),
-        loadOptional('content/resources.json', { subjects: [] })
-      ]);
-      data.students = st.content;  shas.students  = st.sha;
-      data.staff = sf.content;     shas.staff     = sf.sha;
-      data.gallery = gl.content;   shas.gallery   = gl.sha;
-      data.resources = rs.content; shas.resources = rs.sha;
-      renderStudents(); renderStaff(); renderGallery(); renderResourceSubjects();
-
+      if(s.error) throw s.error;
+      data.settings = s.data || {};
+      data.notices = n.data || [];
+      data.faculty = f.data || [];
+      data.students = st.data || [];
+      data.staff = sf.data || [];
+      data.gallery = gl.data || [];
+      data.resources = {};
+      (rs.data || []).forEach(r => {
+        if(!data.resources[r.subject]) data.resources[r.subject] = [];
+        data.resources[r.subject].push(r);
+      });
+      renderSettings(); renderNotices(); renderFaculty(); renderStudents(); renderStaff(); renderGallery(); renderResourceFiles();
       return true;
     }catch(e){
-      toast(e.message, false);
-      setConnStatus(false);
+      toast('Load failed: ' + e.message, false);
       return false;
     }
   }
 
+  // ---------------- SETTINGS ----------------
   function renderSettings(){
     const s = data.settings;
-    const setVal = (id, val) => { document.getElementById(id).value = val || ''; };
+    const setVal = (id,val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
     setVal('s_portal_name', s.portal_name);
     setVal('s_school_name', s.school_name);
     setVal('s_tagline', s.tagline);
@@ -501,11 +407,10 @@
     setVal('s_pass_rate', s.pass_rate);
     setVal('s_faculty_count', s.faculty_count);
     setVal('s_lab_hours', s.lab_hours);
-    if(s.logo) document.getElementById('logoPreview').src = s.logo;
+    if(s.logo_url) document.getElementById('logoPreview').src = s.logo_url;
   }
-
   async function saveSettings(){
-    const s = {
+    const payload = {
       portal_name: document.getElementById('s_portal_name').value.trim(),
       school_name: document.getElementById('s_school_name').value.trim(),
       tagline: document.getElementById('s_tagline').value.trim(),
@@ -516,46 +421,29 @@
       pass_rate: document.getElementById('s_pass_rate').value.trim(),
       faculty_count: document.getElementById('s_faculty_count').value.trim(),
       lab_hours: document.getElementById('s_lab_hours').value.trim(),
-      logo: document.getElementById('logoPreview').src
+      logo_url: document.getElementById('logoPreview').src
     };
-    try{
-      shas.settings = await ghPutFile('content/settings.json', s, shas.settings, 'Update site settings');
-      data.settings = s;
-      toast('Site settings saved. Netlify will redeploy shortly.');
-    }catch(e){ toast(e.message, false); }
+    const { error } = await sb.from('settings').update(payload).eq('id', 1);
+    if(error) toast(error.message, false); else toast('Site settings saved.');
   }
-
   async function uploadLogo(e){
     const file = e.target.files[0];
     if(!file) return;
-    if(!creds.preset){
-      toast('Set a Cloudinary upload preset first (in the Connect panel).', false);
-      return;
-    }
     const statusEl = document.getElementById('logoUploadStatus');
     statusEl.textContent = 'Uploading…';
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset', creds.preset);
     try{
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${creds.cloud}/image/upload`, { method:'POST', body: fd });
-      const json = await res.json();
-      if(!json.secure_url) throw new Error(json.error?.message || 'Upload failed');
-      document.getElementById('logoPreview').src = json.secure_url;
-      statusEl.textContent = 'Uploaded ✓ — remember to click "Save Site Settings" below.';
-    }catch(err){
-      statusEl.textContent = '';
-      toast('Logo upload failed: ' + err.message, false);
-    }
+      const url = await uploadToStorage(file, 'logo');
+      document.getElementById('logoPreview').src = url;
+      statusEl.textContent = 'Uploaded ✓ — remember to click "Save Site Settings".';
+    }catch(err){ statusEl.textContent = ''; toast('Upload failed: ' + err.message, false); }
   }
 
-  // ---- Notices ----
+  // ---------------- NOTICES ----------------
   function renderNotices(){
     const list = document.getElementById('noticesList');
     list.innerHTML = '';
-    (data.notices.items || []).forEach((n, i) => list.appendChild(noticeItemEl(n, i)));
+    data.notices.forEach((n, i) => list.appendChild(noticeItemEl(n, i)));
   }
-
   function noticeItemEl(n, i){
     const div = document.createElement('div');
     div.className = 'item';
@@ -563,50 +451,46 @@
       <div class="item-top">
         <span class="idx mono">#${i+1}</span>
         <div class="item-controls">
-          <button class="icon-btn" title="Move up" onclick="moveItem('notices',${i},-1)">↑</button>
-          <button class="icon-btn" title="Move down" onclick="moveItem('notices',${i},1)">↓</button>
-          <button class="icon-btn" title="Delete" onclick="deleteItem('notices',${i})">✕</button>
+          <button class="icon-btn" onclick="moveItem('notices',${i},-1)">↑</button>
+          <button class="icon-btn" onclick="moveItem('notices',${i},1)">↓</button>
+          <button class="icon-btn" onclick="deleteLocalItem('notices',${i})">✕</button>
         </div>
       </div>
       <label>Title</label>
-      <input type="text" value="${escapeAttr(n.title)}" oninput="updateNotice(${i},'title',this.value)">
+      <input type="text" value="${escapeAttr(n.title)}" oninput="data.notices[${i}].title=this.value">
       <div class="row2">
-        <div>
-          <label>Tag</label>
-          <select onchange="updateNotice(${i},'tag',this.value)">
-            ${['Exam','Holiday','Notice'].map(t => `<option value="${t}" ${n.tag===t?'selected':''}>${t}</option>`).join('')}
+        <div><label>Tag</label>
+          <select onchange="data.notices[${i}].tag=this.value">
+            ${['Exam','Holiday','Notice'].map(t=>`<option ${n.tag===t?'selected':''}>${t}</option>`).join('')}
           </select>
         </div>
-        <div>
-          <label>Date</label>
-          <input type="text" value="${escapeAttr(n.date)}" oninput="updateNotice(${i},'date',this.value)">
-        </div>
+        <div><label>Date</label><input type="text" value="${escapeAttr(n.date)}" oninput="data.notices[${i}].date=this.value"></div>
       </div>
       <label>Details</label>
-      <textarea oninput="updateNotice(${i},'body',this.value)">${escapeHTML(n.body)}</textarea>
+      <textarea oninput="data.notices[${i}].body=this.value">${escapeHTML(n.body)}</textarea>
     `;
     return div;
   }
-
-  function updateNotice(i, field, val){ data.notices.items[i][field] = val; }
-  function addNotice(){
-    data.notices.items.push({ title:'New Notice', tag:'Notice', date:'Posted ' + new Date().toDateString(), body:'' });
-    renderNotices();
-  }
+  function addNotice(){ data.notices.push({title:'New Notice',tag:'Notice',date:new Date().toDateString(),body:''}); renderNotices(); }
   async function saveNotices(){
     try{
-      shas.notices = await ghPutFile('content/notices.json', data.notices, shas.notices, 'Update notices');
-      toast('Notices saved. Netlify will redeploy shortly.');
+      await sb.from('notices').delete().gte('id',0);
+      if(data.notices.length){
+        const payload = data.notices.map((n,i)=>({title:n.title,tag:n.tag,date:n.date,body:n.body,sort_order:i}));
+        const { error } = await sb.from('notices').insert(payload);
+        if(error) throw error;
+      }
+      toast('Notices saved.');
+      loadAll();
     }catch(e){ toast(e.message, false); }
   }
 
-  // ---- Faculty ----
+  // ---------------- FACULTY ----------------
   function renderFaculty(){
     const list = document.getElementById('facultyList');
     list.innerHTML = '';
-    (data.faculty.items || []).forEach((f, i) => list.appendChild(facultyItemEl(f, i)));
+    data.faculty.forEach((f, i) => list.appendChild(facultyItemEl(f, i)));
   }
-
   function facultyItemEl(f, i){
     const div = document.createElement('div');
     div.className = 'item';
@@ -614,135 +498,141 @@
       <div class="item-top">
         <span class="idx mono">#${i+1}</span>
         <div class="item-controls">
-          <button class="icon-btn" title="Move up" onclick="moveItem('faculty',${i},-1)">↑</button>
-          <button class="icon-btn" title="Move down" onclick="moveItem('faculty',${i},1)">↓</button>
-          <button class="icon-btn" title="Delete" onclick="deleteItem('faculty',${i})">✕</button>
+          <button class="icon-btn" onclick="moveItem('faculty',${i},-1)">↑</button>
+          <button class="icon-btn" onclick="moveItem('faculty',${i},1)">↓</button>
+          <button class="icon-btn" onclick="deleteLocalItem('faculty',${i})">✕</button>
         </div>
       </div>
       <div class="row2">
-        <div><label>Name</label><input type="text" value="${escapeAttr(f.name)}" oninput="updateFaculty(${i},'name',this.value)"></div>
-        <div><label>Initials</label><input type="text" value="${escapeAttr(f.initials)}" oninput="updateFaculty(${i},'initials',this.value)"></div>
+        <div><label>Name</label><input type="text" value="${escapeAttr(f.name)}" oninput="data.faculty[${i}].name=this.value"></div>
+        <div><label>Initials</label><input type="text" value="${escapeAttr(f.initials)}" oninput="data.faculty[${i}].initials=this.value"></div>
       </div>
       <label>Subject / Role</label>
-      <input type="text" value="${escapeAttr(f.role)}" oninput="updateFaculty(${i},'role',this.value)">
+      <input type="text" value="${escapeAttr(f.role)}" oninput="data.faculty[${i}].role=this.value">
       <label>Short Note</label>
-      <textarea oninput="updateFaculty(${i},'note',this.value)">${escapeHTML(f.note)}</textarea>
+      <textarea oninput="data.faculty[${i}].note=this.value">${escapeHTML(f.note)}</textarea>
     `;
     return div;
   }
-
-  function updateFaculty(i, field, val){ data.faculty.items[i][field] = val; }
-  function addFaculty(){
-    data.faculty.items.push({ name:'New Teacher', role:'', initials:'', note:'' });
-    renderFaculty();
-  }
+  function addFaculty(){ data.faculty.push({name:'',role:'',initials:'',note:''}); renderFaculty(); }
   async function saveFaculty(){
     try{
-      shas.faculty = await ghPutFile('content/faculty.json', data.faculty, shas.faculty, 'Update faculty');
-      toast('Faculty saved. Netlify will redeploy shortly.');
+      await sb.from('faculty').delete().gte('id',0);
+      if(data.faculty.length){
+        const payload = data.faculty.map((f,i)=>({name:f.name,role:f.role,initials:f.initials,note:f.note,sort_order:i}));
+        const { error } = await sb.from('faculty').insert(payload);
+        if(error) throw error;
+      }
+      toast('Faculty saved.');
+      loadAll();
     }catch(e){ toast(e.message, false); }
   }
 
-  // ---- Students (internal only — not shown on the public site) ----
+  // ---------------- STUDENTS ----------------
   function renderStudents(){
     const list = document.getElementById('studentsList');
-    if(!list) return;
     list.innerHTML = '';
-    (data.students.items || []).forEach((st, i) => list.appendChild(studentItemEl(st, i)));
+    data.students.forEach((s, i) => list.appendChild(studentItemEl(s, i)));
   }
-
-  function studentItemEl(st, i){
+  function studentItemEl(s, i){
     const div = document.createElement('div');
     div.className = 'item';
     div.innerHTML = `
       <div class="item-top">
         <span class="idx mono">#${i+1}</span>
-        <div class="item-controls">
-          <button class="icon-btn" title="Move up" onclick="moveItem('students',${i},-1)">↑</button>
-          <button class="icon-btn" title="Move down" onclick="moveItem('students',${i},1)">↓</button>
-          <button class="icon-btn" title="Delete" onclick="deleteItem('students',${i})">✕</button>
-        </div>
+        <div class="item-controls"><button class="icon-btn" onclick="deleteLocalItem('students',${i})">✕</button></div>
       </div>
       <div class="row2">
-        <div><label>Full Name</label><input type="text" value="${escapeAttr(st.name)}" oninput="updateStudent(${i},'name',this.value)"></div>
-        <div><label>Roll No.</label><input type="text" value="${escapeAttr(st.roll_no)}" oninput="updateStudent(${i},'roll_no',this.value)"></div>
+        <div><label>Full Name</label><input type="text" value="${escapeAttr(s.name)}" oninput="data.students[${i}].name=this.value"></div>
+        <div><label>Roll No.</label><input type="text" value="${escapeAttr(s.roll_no)}" oninput="data.students[${i}].roll_no=this.value"></div>
       </div>
       <div class="row2">
-        <div><label>Class / Section</label><input type="text" placeholder="e.g. 12 - B" value="${escapeAttr(st.class_section)}" oninput="updateStudent(${i},'class_section',this.value)"></div>
-        <div><label>Major</label><input type="text" placeholder="e.g. Physics/Math" value="${escapeAttr(st.major)}" oninput="updateStudent(${i},'major',this.value)"></div>
+        <div><label>Class / Section</label><input type="text" value="${escapeAttr(s.class_section)}" oninput="data.students[${i}].class_section=this.value"></div>
+        <div><label>Major</label><input type="text" value="${escapeAttr(s.major)}" oninput="data.students[${i}].major=this.value"></div>
       </div>
       <label>Guardian Phone (optional)</label>
-      <input type="text" value="${escapeAttr(st.guardian_phone)}" oninput="updateStudent(${i},'guardian_phone',this.value)">
-      <label>Portal Password ${st.password_hash ? '<span class="small-note">(already set — leave blank to keep it)</span>' : ''}</label>
-      <input type="password" placeholder="Type to set/change password" oninput="updateStudentPassword(${i},this.value)">
+      <input type="text" value="${escapeAttr(s.guardian_phone)}" oninput="data.students[${i}].guardian_phone=this.value">
+      <label>Password ${s.password_hash ? '<span class="small-note">(already set — leave blank to keep it)</span>' : ''}</label>
+      <input type="password" placeholder="Type to set/change password" oninput="stagePassword('students',${i},this.value)">
     `;
     return div;
   }
-
-  function updateStudent(i, field, val){ data.students.items[i][field] = val; }
-  async function updateStudentPassword(i, val){
+  async function stagePassword(kind, i, val){
     if(!val) return;
-    data.students.items[i].password_hash = await sha256Hex(val);
+    const { data: hash, error } = await sb.rpc('hash_password', { p_password: val });
+    if(error){ toast(error.message, false); return; }
+    if(kind === 'students') data.students[i].password_hash = hash;
   }
-  function addStudent(){
-    data.students.items.push({ name:'', roll_no:'', class_section:'', major:'', guardian_phone:'', password_hash:'' });
-    renderStudents();
-  }
+  function addStudent(){ data.students.push({name:'',roll_no:'',class_section:'',major:'',guardian_phone:'',password_hash:null}); renderStudents(); }
   async function saveStudents(){
     try{
-      shas.students = await ghPutFile('content/students.json', data.students, shas.students, 'Update students');
+      for(const s of data.students){
+        if(!s.roll_no) continue;
+        const payload = { name:s.name, roll_no:s.roll_no, class_section:s.class_section, major:s.major, guardian_phone:s.guardian_phone, password_hash:s.password_hash };
+        const { error } = await sb.from('students').upsert(payload, { onConflict: 'roll_no' });
+        if(error) throw error;
+      }
       toast('Students saved.');
+      loadAll();
     }catch(e){ toast(e.message, false); }
   }
 
-  // ---- Staff (teacher) accounts ----
+  // ---------------- STAFF ROLES ----------------
   function renderStaff(){
     const list = document.getElementById('staffList');
-    if(!list) return;
     list.innerHTML = '';
-    (data.staff.items || []).forEach((t, i) => list.appendChild(staffItemEl(t, i)));
+    data.staff.forEach((s, i) => list.appendChild(staffItemEl(s, i)));
   }
-  function staffItemEl(t, i){
+  function staffItemEl(s, i){
     const div = document.createElement('div');
     div.className = 'item';
     div.innerHTML = `
       <div class="item-top">
-        <span class="idx mono">#${i+1}</span>
-        <div class="item-controls">
-          <button class="icon-btn" title="Delete" onclick="deleteItem('staff',${i})">✕</button>
+        <span class="idx mono">${escapeHTML(s.user_id).slice(0,8)}…</span>
+        <div class="item-controls"><button class="icon-btn" onclick="deleteStaffRow(${i})">✕</button></div>
+      </div>
+      <label>User UUID (from Supabase → Authentication → Users)</label>
+      <input type="text" value="${escapeAttr(s.user_id)}" oninput="data.staff[${i}].user_id=this.value">
+      <div class="row2">
+        <div><label>Name</label><input type="text" value="${escapeAttr(s.name)}" oninput="data.staff[${i}].name=this.value"></div>
+        <div><label>Role</label>
+          <select onchange="data.staff[${i}].role=this.value">
+            <option value="admin" ${s.role==='admin'?'selected':''}>Admin</option>
+            <option value="teacher" ${s.role==='teacher'?'selected':''}>Teacher</option>
+          </select>
         </div>
       </div>
-      <div class="row2">
-        <div><label>Full Name</label><input type="text" value="${escapeAttr(t.name)}" oninput="updateStaff(${i},'name',this.value)"></div>
-        <div><label>Username</label><input type="text" value="${escapeAttr(t.username)}" oninput="updateStaff(${i},'username',this.value)"></div>
-      </div>
-      <label>Password ${t.password_hash ? '<span class="small-note">(already set — leave blank to keep it)</span>' : ''}</label>
-      <input type="password" placeholder="Type to set/change password" oninput="updateStaffPassword(${i},this.value)">
     `;
     return div;
   }
-  function updateStaff(i, field, val){ data.staff.items[i][field] = val; }
-  async function updateStaffPassword(i, val){
-    if(!val) return;
-    data.staff.items[i].password_hash = await sha256Hex(val);
-  }
-  function addStaff(){
-    data.staff.items.push({ name:'', username:'', password_hash:'' });
+  function addStaff(){ data.staff.push({user_id:'',name:'',role:'teacher'}); renderStaff(); }
+  async function deleteStaffRow(i){
+    if(!confirm('Remove this staff role? They will lose admin/teacher access.')) return;
+    const row = data.staff[i];
+    if(row.user_id){
+      const { error } = await sb.from('staff_roles').delete().eq('user_id', row.user_id);
+      if(error){ toast(error.message, false); return; }
+    }
+    data.staff.splice(i,1);
     renderStaff();
   }
   async function saveStaff(){
     try{
-      shas.staff = await ghPutFile('content/teachers.json', data.staff, shas.staff, 'Update staff accounts');
-      toast('Staff accounts saved.');
+      for(const s of data.staff){
+        if(!s.user_id) continue;
+        const { error } = await sb.from('staff_roles').upsert({ user_id:s.user_id, role:s.role, name:s.name }, { onConflict: 'user_id' });
+        if(error) throw error;
+      }
+      toast('Staff roles saved.');
+      loadAll();
     }catch(e){ toast(e.message, false); }
   }
 
-  // ---- Gallery ----
+  // ---------------- GALLERY ----------------
   function renderGallery(){
     const list = document.getElementById('galleryList');
-    if(!list) return;
     list.innerHTML = '';
-    (data.gallery.items || []).forEach((g, i) => list.appendChild(galleryItemEl(g, i)));
+    data.gallery.forEach((g, i) => list.appendChild(galleryItemEl(g, i)));
   }
   function galleryItemEl(g, i){
     const div = document.createElement('div');
@@ -751,9 +641,9 @@
       <div class="item-top">
         <span class="idx mono">#${i+1}</span>
         <div class="item-controls">
-          <button class="icon-btn" title="Move up" onclick="moveItem('gallery',${i},-1)">↑</button>
-          <button class="icon-btn" title="Move down" onclick="moveItem('gallery',${i},1)">↓</button>
-          <button class="icon-btn" title="Delete" onclick="deleteItem('gallery',${i})">✕</button>
+          <button class="icon-btn" onclick="moveItem('gallery',${i},-1)">↑</button>
+          <button class="icon-btn" onclick="moveItem('gallery',${i},1)">↓</button>
+          <button class="icon-btn" onclick="deleteLocalItem('gallery',${i})">✕</button>
         </div>
       </div>
       <div class="logo-preview">
@@ -764,144 +654,107 @@
         </div>
       </div>
       <div class="row2">
-        <div><label>Category</label><input type="text" placeholder="e.g. Lab, Sports, Event" value="${escapeAttr(g.category)}" oninput="updateGallery(${i},'category',this.value)"></div>
-        <div><label>Event Name</label><input type="text" value="${escapeAttr(g.event)}" oninput="updateGallery(${i},'event',this.value)"></div>
+        <div><label>Category</label><input type="text" value="${escapeAttr(g.category)}" oninput="data.gallery[${i}].category=this.value"></div>
+        <div><label>Event Name</label><input type="text" value="${escapeAttr(g.event)}" oninput="data.gallery[${i}].event=this.value"></div>
       </div>
       <label>Caption</label>
-      <input type="text" value="${escapeAttr(g.caption)}" oninput="updateGallery(${i},'caption',this.value)">
+      <input type="text" value="${escapeAttr(g.caption)}" oninput="data.gallery[${i}].caption=this.value">
     `;
     return div;
   }
-  function updateGallery(i, field, val){ data.gallery.items[i][field] = val; }
-  function addGalleryItem(){
-    data.gallery.items.push({ category:'', event:'', caption:'', image_url:'' });
-    renderGallery();
-  }
+  function addGalleryItem(){ data.gallery.push({category:'',event:'',caption:'',image_url:''}); renderGallery(); }
   async function uploadGalleryImage(e, i){
     const file = e.target.files[0];
     if(!file) return;
-    if(!creds.preset){ toast('Set a Cloudinary upload preset first.', false); return; }
-    const statusEl = document.getElementById('gimgstatus' + i);
+    const statusEl = document.getElementById('gimgstatus'+i);
     statusEl.textContent = 'Uploading…';
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset', creds.preset);
     try{
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${creds.cloud}/image/upload`, { method:'POST', body: fd });
-      const json = await res.json();
-      if(!json.secure_url) throw new Error(json.error?.message || 'Upload failed');
-      data.gallery.items[i].image_url = json.secure_url;
+      const url = await uploadToStorage(file, 'gallery');
+      data.gallery[i].image_url = url;
       statusEl.textContent = 'Uploaded ✓';
       renderGallery();
-    }catch(err){
-      statusEl.textContent = '';
-      toast('Image upload failed: ' + err.message, false);
-    }
+    }catch(err){ statusEl.textContent=''; toast('Upload failed: '+err.message, false); }
   }
   async function saveGallery(){
     try{
-      shas.gallery = await ghPutFile('content/gallery.json', data.gallery, shas.gallery, 'Update gallery');
+      await sb.from('gallery').delete().gte('id',0);
+      if(data.gallery.length){
+        const payload = data.gallery.map((g,i)=>({category:g.category,event:g.event,caption:g.caption,image_url:g.image_url,sort_order:i}));
+        const { error } = await sb.from('gallery').insert(payload);
+        if(error) throw error;
+      }
       toast('Gallery saved.');
+      loadAll();
     }catch(e){ toast(e.message, false); }
   }
 
-  // ---- Resources (per subject files) ----
-  function renderResourceSubjects(){
-    const sel = document.getElementById('resourceSubjectSelect');
-    if(!sel) return;
-    sel.innerHTML = (data.resources.subjects || []).map(s => `<option value="${escapeAttr(s.name)}">${escapeHTML(s.name)}</option>`).join('');
-    renderResourceFiles();
-  }
+  // ---------------- RESOURCES ----------------
   function renderResourceFiles(){
     const sel = document.getElementById('resourceSubjectSelect');
     const list = document.getElementById('resourceFilesList');
-    if(!sel || !list) return;
-    const subj = (data.resources.subjects || []).find(s => s.name === sel.value);
+    const files = data.resources[sel.value] || [];
     list.innerHTML = '';
-    if(!subj || !subj.files.length){
-      list.innerHTML = '<p class="small-note">No files uploaded for this subject yet.</p>';
-      return;
-    }
-    subj.files.forEach((f, i) => {
+    if(!files.length){ list.innerHTML = '<p class="small-note">No files uploaded for this subject yet.</p>'; return; }
+    files.forEach(f => {
       const row = document.createElement('div');
       row.className = 'item';
       row.innerHTML = `
         <div class="item-top">
           <span class="idx mono">${(f.type||'file').toUpperCase()}</span>
-          <div class="item-controls"><button class="icon-btn" title="Delete" onclick="deleteResourceFile(${i})">✕</button></div>
+          <div class="item-controls"><button class="icon-btn" onclick="deleteResourceFile(${f.id})">✕</button></div>
         </div>
-        <input type="text" value="${escapeAttr(f.title)}" oninput="updateResourceTitle(${i}, this.value)" placeholder="File title">
+        <input type="text" value="${escapeAttr(f.title)}" onchange="renameResourceFile(${f.id}, this.value)" placeholder="File title">
       `;
       list.appendChild(row);
     });
   }
-  function updateResourceTitle(i, val){
-    const subj = (data.resources.subjects || []).find(s => s.name === document.getElementById('resourceSubjectSelect').value);
-    if(subj) subj.files[i].title = val;
+  async function renameResourceFile(id, title){
+    const { error } = await sb.from('resources').update({ title }).eq('id', id);
+    if(error) toast(error.message, false);
   }
-  function deleteResourceFile(i){
-    if(!confirm('Delete this file from the subject list?')) return;
-    const subj = (data.resources.subjects || []).find(s => s.name === document.getElementById('resourceSubjectSelect').value);
-    if(subj){ subj.files.splice(i,1); renderResourceFiles(); }
+  async function deleteResourceFile(id){
+    if(!confirm('Delete this file?')) return;
+    const { error } = await sb.from('resources').delete().eq('id', id);
+    if(error){ toast(error.message, false); return; }
+    await loadAll();
   }
   async function uploadResourceFile(e){
     const file = e.target.files[0];
     if(!file) return;
-    if(!creds.preset){ toast('Set a Cloudinary upload preset first.', false); return; }
     const statusEl = document.getElementById('resourceUploadStatus');
     statusEl.textContent = 'Uploading…';
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset', creds.preset);
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const ext = (file.name.split('.').pop()||'').toLowerCase();
+    const subject = document.getElementById('resourceSubjectSelect').value;
     try{
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${creds.cloud}/auto/upload`, { method:'POST', body: fd });
-      const json = await res.json();
-      if(!json.secure_url) throw new Error(json.error?.message || 'Upload failed. Your Cloudinary preset may need "allow unsigned uploads of raw files" turned on for non-image files.');
-      const sel = document.getElementById('resourceSubjectSelect');
-      const subj = (data.resources.subjects || []).find(s => s.name === sel.value);
-      if(subj){
-        subj.files.push({ title: file.name.replace(/\.[^.]+$/, ''), type: ext, url: json.secure_url });
-        renderResourceFiles();
-      }
-      statusEl.textContent = 'Uploaded ✓ — remember to click "Save Resources".';
-    }catch(err){
-      statusEl.textContent = '';
-      toast(err.message, false);
-    }
-  }
-  async function saveResources(){
-    try{
-      shas.resources = await ghPutFile('content/resources.json', data.resources, shas.resources, 'Update resources');
-      toast('Resources saved.');
-    }catch(e){ toast(e.message, false); }
+      const url = await uploadToStorage(file, 'resources/' + subject.replace(/\s+/g,'_'));
+      const { error } = await sb.from('resources').insert({
+        subject, title: file.name.replace(/\.[^.]+$/, ''), type: ext, url
+      });
+      if(error) throw error;
+      statusEl.textContent = 'Uploaded ✓';
+      await loadAll();
+    }catch(err){ statusEl.textContent=''; toast('Upload failed: ' + err.message, false); }
   }
 
-  // ---- shared list helpers ----
+  // ---------------- shared helpers ----------------
   const RENDERERS = { notices: renderNotices, faculty: renderFaculty, students: renderStudents, staff: renderStaff, gallery: renderGallery };
   function moveItem(coll, i, dir){
-    const arr = data[coll].items;
+    const arr = data[coll];
     const j = i + dir;
     if(j < 0 || j >= arr.length) return;
     [arr[i], arr[j]] = [arr[j], arr[i]];
     RENDERERS[coll]();
   }
-  function deleteItem(coll, i){
-    if(!confirm('Delete this item? This only takes effect after you click Save.')) return;
-    data[coll].items.splice(i, 1);
+  function deleteLocalItem(coll, i){
+    if(!confirm('Remove this item? Click Save afterward to make it permanent.')) return;
+    data[coll].splice(i, 1);
     RENDERERS[coll]();
-  }
-
-  function escapeHTML(str){
-    return String(str || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  }
-  function escapeAttr(str){
-    return String(str || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
 
   function showTab(name){
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+    if(name === 'resources') renderResourceFiles();
   }
 </script>
 
