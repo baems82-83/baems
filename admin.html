@@ -104,8 +104,12 @@
 <main>
 
   <div class="card" id="loginCard" style="max-width:380px; margin:60px auto;">
-    <h2>Admin Log In</h2>
+    <h2>Log In</h2>
     <p class="hint">Staff login for BAEMS STUDY content management.</p>
+    <div class="tabs" style="margin-bottom:4px;">
+      <button class="tab active" id="roleAdminBtn" onclick="setLoginRole('admin')">Admin</button>
+      <button class="tab" id="roleTeacherBtn" onclick="setLoginRole('teacher')">Teacher</button>
+    </div>
     <label>Username</label>
     <input type="text" id="loginUser" autocomplete="username">
     <label>Password</label>
@@ -150,10 +154,13 @@
 
   <div id="workArea" style="display:none;">
     <div class="tabs">
-      <button class="tab active" data-tab="settings" onclick="showTab('settings')">Site Settings</button>
-      <button class="tab" data-tab="notices" onclick="showTab('notices')">Notices</button>
-      <button class="tab" data-tab="faculty" onclick="showTab('faculty')">Faculty</button>
-      <button class="tab" data-tab="students" onclick="showTab('students')">Students</button>
+      <button class="tab active" data-tab="settings" data-role="admin" onclick="showTab('settings')">Site Settings</button>
+      <button class="tab" data-tab="notices" data-role="admin" onclick="showTab('notices')">Notices</button>
+      <button class="tab" data-tab="faculty" data-role="admin" onclick="showTab('faculty')">Faculty</button>
+      <button class="tab" data-tab="students" data-role="admin" onclick="showTab('students')">Students</button>
+      <button class="tab" data-tab="staff" data-role="admin" onclick="showTab('staff')">Staff Accounts</button>
+      <button class="tab" data-tab="gallery" data-role="any" onclick="showTab('gallery')">Gallery</button>
+      <button class="tab" data-tab="resources" data-role="any" onclick="showTab('resources')">Resources</button>
       <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="loadAll()">↻ Reload from GitHub</button>
     </div>
 
@@ -229,14 +236,60 @@
       <div class="card">
         <h2>Students</h2>
         <p class="hint">
-          Internal records only — <b>not shown anywhere on the public website</b>. Kept for your own reference (e.g. roll registers, future result lookups).
-          Since this data lives in a GitHub repo, make sure that repo is set to <b>Private</b> (Repo → Settings → Danger Zone → Change visibility) before entering real student names here.
+          Not shown as a public "directory" page, but <b>this file is fetched directly by the Student Portal login</b>, which means it's served publicly by Netlify no matter whether the GitHub repo is public or private — that part is unavoidable with a backend-free site.
+          Passwords are stored as scrambled hashes (not plain text), so this data isn't fully invisible, but casual viewers can't read passwords directly. Avoid adding anything more sensitive than name, roll number, class/section, and major.
         </p>
         <div id="studentsList"></div>
         <div class="actions">
           <button class="btn btn-outline" onclick="addStudent()">+ Add Student</button>
           <button class="btn btn-primary" onclick="saveStudents()">Save Students</button>
         </div>
+      </div>
+    </div>
+
+    <!-- STAFF ACCOUNTS (admin-only) -->
+    <div class="panel" id="panel-staff">
+      <div class="card">
+        <h2>Staff (Teacher) Accounts</h2>
+        <p class="hint">
+          Create login accounts for teachers. Teachers log in on this same page (choose "Teacher" at login) and get the Gallery and Resources tabs only — not Site Settings, Notices, Faculty, or Students.
+          <br><b>Important:</b> a teacher still needs the same GitHub connection (Connection Setup) to save anything, which technically grants repo write access — the tab restriction is a convenience, not a hard security wall. Only give teacher logins to people you trust with that.
+        </p>
+        <div id="staffList"></div>
+        <div class="actions">
+          <button class="btn btn-outline" onclick="addStaff()">+ Add Teacher Account</button>
+          <button class="btn btn-primary" onclick="saveStaff()">Save Staff Accounts</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GALLERY -->
+    <div class="panel" id="panel-gallery">
+      <div class="card">
+        <h2>Gallery</h2>
+        <p class="hint">Photos shown publicly on the site's Gallery section, grouped by category/event. Visitors can download and share these.</p>
+        <div id="galleryList"></div>
+        <div class="actions">
+          <button class="btn btn-outline" onclick="addGalleryItem()">+ Add Photo</button>
+          <button class="btn btn-primary" onclick="saveGallery()">Save Gallery</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESOURCES -->
+    <div class="panel" id="panel-resources">
+      <div class="card">
+        <h2>Learning Resources</h2>
+        <p class="hint">Files students see in the Student Portal, organized by subject. Upload PDFs, Word docs, PowerPoint slides, or images.</p>
+        <label>Subject</label>
+        <select id="resourceSubjectSelect" onchange="renderResourceFiles()"></select>
+        <div id="resourceFilesList" style="margin-top:16px;"></div>
+        <div class="actions">
+          <input type="file" id="resourceFileInput" style="display:none;" onchange="uploadResourceFile(event)">
+          <button class="btn btn-outline" onclick="document.getElementById('resourceFileInput').click()">+ Upload File</button>
+          <button class="btn btn-primary" onclick="saveResources()">Save Resources</button>
+        </div>
+        <p class="small-note" id="resourceUploadStatus"></p>
       </div>
     </div>
   </div>
@@ -249,14 +302,14 @@
   // NOTE: this is a basic front-door gate, not real security — anyone who views this file's
   // source can read these values. It just keeps casual visitors out; the actual write access
   // is protected by the GitHub token entered in Connection Setup, which is what really matters.
-  const ADMIN_USERNAME = 'admin';
-  const ADMIN_PASSWORD = 'baems2063';
-
   const LS_KEY = 'baems_admin_creds_v1';
   const SESSION_KEY = 'baems_admin_logged_in';
+  const SESSION_ROLE_KEY = 'baems_admin_role';
   let creds = null;
-  let shas = { settings: null, notices: null, faculty: null, students: null };
-  let data = { settings: {}, notices: { items: [] }, faculty: { items: [] }, students: { items: [] } };
+  let loginRole = 'admin';
+  let currentRole = 'admin';
+  let shas = { settings: null, notices: null, faculty: null, students: null, staff: null, gallery: null, resources: null };
+  let data = { settings: {}, notices: { items: [] }, faculty: { items: [] }, students: { items: [] }, staff: { items: [] }, gallery: { items: [] }, resources: { subjects: [] } };
 
   function toast(msg, ok=true){
     const t = document.getElementById('toast');
@@ -269,6 +322,15 @@
 
   function utf8ToB64(str){ return btoa(unescape(encodeURIComponent(str))); }
   function b64ToUtf8(str){ return decodeURIComponent(escape(atob(str))); }
+  async function sha256Hex(str){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  async function plainFetchJSON(path){
+    const res = await fetch(path, { cache: 'no-store' });
+    if(!res.ok) throw new Error('Could not load ' + path);
+    return res.json();
+  }
 
   function loadCredsFromStorage(){
     try{
@@ -280,26 +342,59 @@
 
   function setConnStatus(on){
     const el = document.getElementById('connStatus');
-    el.textContent = on ? 'Connected · ' + creds.repo : 'Not connected';
+    el.textContent = on ? 'Connected · ' + creds.repo + ' · ' + currentRole : 'Not connected';
     el.className = 'mono status ' + (on ? 'on' : 'off');
   }
 
-  function doLogin(){
+  function setLoginRole(role){
+    loginRole = role;
+    document.getElementById('roleAdminBtn').classList.toggle('active', role === 'admin');
+    document.getElementById('roleTeacherBtn').classList.toggle('active', role === 'teacher');
+  }
+
+  async function doLogin(){
     const u = document.getElementById('loginUser').value.trim();
     const p = document.getElementById('loginPass').value;
     const errEl = document.getElementById('loginError');
-    if(u === ADMIN_USERNAME && p === ADMIN_PASSWORD){
-      errEl.style.display = 'none';
-      sessionStorage.setItem(SESSION_KEY, '1');
-      enterApp();
-    }else{
+    errEl.style.display = 'none';
+
+    if(loginRole === 'admin'){
+      // NOTE: this is a basic front-door gate, not real security — anyone who views this file's
+      // source can read these values. It just keeps casual visitors out; the actual write access
+      // is protected by the GitHub token entered in Connection Setup, which is what really matters.
+      if(u === 'admin' && p === 'baems2063'){
+        sessionStorage.setItem(SESSION_KEY, '1');
+        sessionStorage.setItem(SESSION_ROLE_KEY, 'admin');
+        enterApp('admin');
+        return;
+      }
       errEl.textContent = 'Wrong username or password.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Teacher login — checked against content/teachers.json (public file, hashed passwords)
+    try{
+      const teachers = await plainFetchJSON('content/teachers.json');
+      const hash = await sha256Hex(p);
+      const match = (teachers.items || []).find(t => t.username === u && t.password_hash === hash);
+      if(!match){
+        errEl.textContent = 'Wrong username or password.';
+        errEl.style.display = 'block';
+        return;
+      }
+      sessionStorage.setItem(SESSION_KEY, '1');
+      sessionStorage.setItem(SESSION_ROLE_KEY, 'teacher');
+      enterApp('teacher');
+    }catch(e){
+      errEl.textContent = 'Could not check teacher accounts — try again shortly.';
       errEl.style.display = 'block';
     }
   }
 
   function logout(){
     sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_ROLE_KEY);
     document.getElementById('loginCard').style.display = 'block';
     document.getElementById('setupCard').style.display = 'none';
     document.getElementById('workArea').style.display = 'none';
@@ -313,10 +408,21 @@
     el.style.display = el.style.display === 'none' ? 'block' : 'none';
   }
 
-  async function enterApp(){
+  function applyRoleVisibility(role){
+    document.querySelectorAll('.tab[data-role]').forEach(t => {
+      t.style.display = (t.dataset.role === 'admin' && role !== 'admin') ? 'none' : 'inline-flex';
+    });
+    if(role !== 'admin'){
+      showTab('gallery');
+    }
+  }
+
+  async function enterApp(role){
+    currentRole = role || sessionStorage.getItem(SESSION_ROLE_KEY) || 'admin';
     document.getElementById('loginCard').style.display = 'none';
     document.getElementById('gearBtn').style.display = 'inline-block';
     document.getElementById('logoutBtn').style.display = 'inline-block';
+    applyRoleVisibility(currentRole);
 
     const saved = loadCredsFromStorage();
     if(saved && saved.token){
@@ -335,7 +441,7 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     if(sessionStorage.getItem(SESSION_KEY) === '1'){
-      enterApp();
+      enterApp(sessionStorage.getItem(SESSION_ROLE_KEY) || 'admin');
     }
   });
 
@@ -406,6 +512,15 @@
     return json.content.sha;
   }
 
+  async function loadOptional(path, fallback){
+    try{
+      const r = await ghGetFile(path);
+      return { content: r.content, sha: r.sha };
+    }catch(err){
+      return { content: fallback, sha: null };
+    }
+  }
+
   async function loadAll(){
     try{
       const [s, n, f] = await Promise.all([
@@ -418,14 +533,17 @@
       data.faculty = f.content;  shas.faculty  = f.sha;
       renderSettings(); renderNotices(); renderFaculty();
 
-      // students.json is optional — tolerate it not existing yet in the repo
-      try{
-        const st = await ghGetFile('content/students.json');
-        data.students = st.content; shas.students = st.sha;
-      }catch(err){
-        data.students = { items: [] }; shas.students = null;
-      }
-      renderStudents();
+      const [st, sf, gl, rs] = await Promise.all([
+        loadOptional('content/students.json', { items: [] }),
+        loadOptional('content/teachers.json', { items: [] }),
+        loadOptional('content/gallery.json', { items: [] }),
+        loadOptional('content/resources.json', { subjects: [] })
+      ]);
+      data.students = st.content;  shas.students  = st.sha;
+      data.staff = sf.content;     shas.staff     = sf.sha;
+      data.gallery = gl.content;   shas.gallery   = gl.sha;
+      data.resources = rs.content; shas.resources = rs.sha;
+      renderStudents(); renderStaff(); renderGallery(); renderResourceSubjects();
 
       return true;
     }catch(e){
@@ -620,13 +738,19 @@
       </div>
       <label>Guardian Phone (optional)</label>
       <input type="text" value="${escapeAttr(st.guardian_phone)}" oninput="updateStudent(${i},'guardian_phone',this.value)">
+      <label>Portal Password ${st.password_hash ? '<span class="small-note">(already set — leave blank to keep it)</span>' : ''}</label>
+      <input type="password" placeholder="Type to set/change password" oninput="updateStudentPassword(${i},this.value)">
     `;
     return div;
   }
 
   function updateStudent(i, field, val){ data.students.items[i][field] = val; }
+  async function updateStudentPassword(i, val){
+    if(!val) return;
+    data.students.items[i].password_hash = await sha256Hex(val);
+  }
   function addStudent(){
-    data.students.items.push({ name:'', roll_no:'', class_section:'', major:'', guardian_phone:'' });
+    data.students.items.push({ name:'', roll_no:'', class_section:'', major:'', guardian_phone:'', password_hash:'' });
     renderStudents();
   }
   async function saveStudents(){
@@ -636,8 +760,190 @@
     }catch(e){ toast(e.message, false); }
   }
 
+  // ---- Staff (teacher) accounts ----
+  function renderStaff(){
+    const list = document.getElementById('staffList');
+    if(!list) return;
+    list.innerHTML = '';
+    (data.staff.items || []).forEach((t, i) => list.appendChild(staffItemEl(t, i)));
+  }
+  function staffItemEl(t, i){
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <div class="item-top">
+        <span class="idx mono">#${i+1}</span>
+        <div class="item-controls">
+          <button class="icon-btn" title="Delete" onclick="deleteItem('staff',${i})">✕</button>
+        </div>
+      </div>
+      <div class="row2">
+        <div><label>Full Name</label><input type="text" value="${escapeAttr(t.name)}" oninput="updateStaff(${i},'name',this.value)"></div>
+        <div><label>Username</label><input type="text" value="${escapeAttr(t.username)}" oninput="updateStaff(${i},'username',this.value)"></div>
+      </div>
+      <label>Password ${t.password_hash ? '<span class="small-note">(already set — leave blank to keep it)</span>' : ''}</label>
+      <input type="password" placeholder="Type to set/change password" oninput="updateStaffPassword(${i},this.value)">
+    `;
+    return div;
+  }
+  function updateStaff(i, field, val){ data.staff.items[i][field] = val; }
+  async function updateStaffPassword(i, val){
+    if(!val) return;
+    data.staff.items[i].password_hash = await sha256Hex(val);
+  }
+  function addStaff(){
+    data.staff.items.push({ name:'', username:'', password_hash:'' });
+    renderStaff();
+  }
+  async function saveStaff(){
+    try{
+      shas.staff = await ghPutFile('content/teachers.json', data.staff, shas.staff, 'Update staff accounts');
+      toast('Staff accounts saved.');
+    }catch(e){ toast(e.message, false); }
+  }
+
+  // ---- Gallery ----
+  function renderGallery(){
+    const list = document.getElementById('galleryList');
+    if(!list) return;
+    list.innerHTML = '';
+    (data.gallery.items || []).forEach((g, i) => list.appendChild(galleryItemEl(g, i)));
+  }
+  function galleryItemEl(g, i){
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <div class="item-top">
+        <span class="idx mono">#${i+1}</span>
+        <div class="item-controls">
+          <button class="icon-btn" title="Move up" onclick="moveItem('gallery',${i},-1)">↑</button>
+          <button class="icon-btn" title="Move down" onclick="moveItem('gallery',${i},1)">↓</button>
+          <button class="icon-btn" title="Delete" onclick="deleteItem('gallery',${i})">✕</button>
+        </div>
+      </div>
+      <div class="logo-preview">
+        <img src="${g.image_url || 'assets/logo.png'}" alt="">
+        <div>
+          <input type="file" accept="image/*" onchange="uploadGalleryImage(event,${i})">
+          <div class="small-note" id="gimgstatus${i}"></div>
+        </div>
+      </div>
+      <div class="row2">
+        <div><label>Category</label><input type="text" placeholder="e.g. Lab, Sports, Event" value="${escapeAttr(g.category)}" oninput="updateGallery(${i},'category',this.value)"></div>
+        <div><label>Event Name</label><input type="text" value="${escapeAttr(g.event)}" oninput="updateGallery(${i},'event',this.value)"></div>
+      </div>
+      <label>Caption</label>
+      <input type="text" value="${escapeAttr(g.caption)}" oninput="updateGallery(${i},'caption',this.value)">
+    `;
+    return div;
+  }
+  function updateGallery(i, field, val){ data.gallery.items[i][field] = val; }
+  function addGalleryItem(){
+    data.gallery.items.push({ category:'', event:'', caption:'', image_url:'' });
+    renderGallery();
+  }
+  async function uploadGalleryImage(e, i){
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!creds.preset){ toast('Set a Cloudinary upload preset first.', false); return; }
+    const statusEl = document.getElementById('gimgstatus' + i);
+    statusEl.textContent = 'Uploading…';
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', creds.preset);
+    try{
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${creds.cloud}/image/upload`, { method:'POST', body: fd });
+      const json = await res.json();
+      if(!json.secure_url) throw new Error(json.error?.message || 'Upload failed');
+      data.gallery.items[i].image_url = json.secure_url;
+      statusEl.textContent = 'Uploaded ✓';
+      renderGallery();
+    }catch(err){
+      statusEl.textContent = '';
+      toast('Image upload failed: ' + err.message, false);
+    }
+  }
+  async function saveGallery(){
+    try{
+      shas.gallery = await ghPutFile('content/gallery.json', data.gallery, shas.gallery, 'Update gallery');
+      toast('Gallery saved.');
+    }catch(e){ toast(e.message, false); }
+  }
+
+  // ---- Resources (per subject files) ----
+  function renderResourceSubjects(){
+    const sel = document.getElementById('resourceSubjectSelect');
+    if(!sel) return;
+    sel.innerHTML = (data.resources.subjects || []).map(s => `<option value="${escapeAttr(s.name)}">${escapeHTML(s.name)}</option>`).join('');
+    renderResourceFiles();
+  }
+  function renderResourceFiles(){
+    const sel = document.getElementById('resourceSubjectSelect');
+    const list = document.getElementById('resourceFilesList');
+    if(!sel || !list) return;
+    const subj = (data.resources.subjects || []).find(s => s.name === sel.value);
+    list.innerHTML = '';
+    if(!subj || !subj.files.length){
+      list.innerHTML = '<p class="small-note">No files uploaded for this subject yet.</p>';
+      return;
+    }
+    subj.files.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.innerHTML = `
+        <div class="item-top">
+          <span class="idx mono">${(f.type||'file').toUpperCase()}</span>
+          <div class="item-controls"><button class="icon-btn" title="Delete" onclick="deleteResourceFile(${i})">✕</button></div>
+        </div>
+        <input type="text" value="${escapeAttr(f.title)}" oninput="updateResourceTitle(${i}, this.value)" placeholder="File title">
+      `;
+      list.appendChild(row);
+    });
+  }
+  function updateResourceTitle(i, val){
+    const subj = (data.resources.subjects || []).find(s => s.name === document.getElementById('resourceSubjectSelect').value);
+    if(subj) subj.files[i].title = val;
+  }
+  function deleteResourceFile(i){
+    if(!confirm('Delete this file from the subject list?')) return;
+    const subj = (data.resources.subjects || []).find(s => s.name === document.getElementById('resourceSubjectSelect').value);
+    if(subj){ subj.files.splice(i,1); renderResourceFiles(); }
+  }
+  async function uploadResourceFile(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!creds.preset){ toast('Set a Cloudinary upload preset first.', false); return; }
+    const statusEl = document.getElementById('resourceUploadStatus');
+    statusEl.textContent = 'Uploading…';
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', creds.preset);
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    try{
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${creds.cloud}/auto/upload`, { method:'POST', body: fd });
+      const json = await res.json();
+      if(!json.secure_url) throw new Error(json.error?.message || 'Upload failed. Your Cloudinary preset may need "allow unsigned uploads of raw files" turned on for non-image files.');
+      const sel = document.getElementById('resourceSubjectSelect');
+      const subj = (data.resources.subjects || []).find(s => s.name === sel.value);
+      if(subj){
+        subj.files.push({ title: file.name.replace(/\.[^.]+$/, ''), type: ext, url: json.secure_url });
+        renderResourceFiles();
+      }
+      statusEl.textContent = 'Uploaded ✓ — remember to click "Save Resources".';
+    }catch(err){
+      statusEl.textContent = '';
+      toast(err.message, false);
+    }
+  }
+  async function saveResources(){
+    try{
+      shas.resources = await ghPutFile('content/resources.json', data.resources, shas.resources, 'Update resources');
+      toast('Resources saved.');
+    }catch(e){ toast(e.message, false); }
+  }
+
   // ---- shared list helpers ----
-  const RENDERERS = { notices: renderNotices, faculty: renderFaculty, students: renderStudents };
+  const RENDERERS = { notices: renderNotices, faculty: renderFaculty, students: renderStudents, staff: renderStaff, gallery: renderGallery };
   function moveItem(coll, i, dir){
     const arr = data[coll].items;
     const j = i + dir;

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Student Portal | BAEMS STUDY</title>
+<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#182352; --paper:#faf3da; --paper-2:#f1e3ac;
+    --lab:#22306e; --amber:#c1451f; --slate:#1f9fc4;
+    --line: rgba(24,35,82,0.18); --white:#fffdf6; --danger:#b7291f; --ok:#1d7a4c;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans',sans-serif;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:700; margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  header{
+    background:var(--ink); color:var(--white); padding:16px 24px;
+    display:flex; align-items:center; gap:12px; justify-content:space-between; flex-wrap:wrap;
+  }
+  header .title{display:flex; align-items:center; gap:12px;}
+  header img{width:34px; height:34px; border-radius:50%; background:var(--white); padding:2px;}
+  header h1{font-size:18px; color:var(--white);}
+  header a.back{color:#c9d0f5; font-size:13px; text-decoration:none;}
+  main{max-width:900px; margin:0 auto; padding:32px 20px 80px;}
+  .card{background:var(--white); border:1px solid var(--line); border-radius:6px; padding:26px; margin-bottom:20px;}
+  label{font-size:12px; text-transform:uppercase; letter-spacing:0.04em; color:#4a524d; display:block; margin:14px 0 5px;}
+  label:first-child{margin-top:0;}
+  input[type=text], input[type=password]{
+    width:100%; padding:11px 12px; border:1px solid var(--ink); border-radius:3px; font-size:14px; background:var(--white); color:var(--ink);
+  }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:3px;
+    font-weight:600; font-size:14px; border:1.5px solid var(--ink); cursor:pointer; background:transparent; color:var(--ink);
+  }
+  .btn-primary{background:var(--amber); border-color:var(--amber); color:#fff;}
+  .btn-sm{padding:6px 12px; font-size:12.5px;}
+  .err{color:var(--danger); font-size:13px; margin-top:10px; display:none;}
+  .tabs{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;}
+  .tab{padding:9px 16px; border-radius:20px; border:1.5px solid var(--ink); background:transparent; font-weight:600; font-size:13px; cursor:pointer; color:var(--ink);}
+  .tab.active{background:var(--ink); color:var(--paper);}
+  .file-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    border:1px solid var(--line); border-radius:4px; padding:14px 16px; margin-bottom:10px; background:#fffef9;
+  }
+  .file-row .ftype{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase;
+    background:var(--slate); color:#fff; padding:3px 8px; border-radius:3px; margin-right:10px;
+  }
+  .file-row .fname{font-weight:600; font-size:14.5px;}
+  .file-actions{display:flex; gap:8px; flex-shrink:0;}
+  .empty-note{color:#7a7360; font-size:14px; padding:20px 0;}
+  .welcome{font-size:14px; color:#3a423e; margin-bottom:18px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <img src="assets/logo.png" alt="logo" onerror="this.style.display='none'">
+    <h1>BAEMS STUDY — Student Portal</h1>
+  </div>
+  <a class="back" href="index.html">← Back to main site</a>
+</header>
+
+<main>
+  <div class="card" id="loginCard" style="max-width:380px; margin:40px auto;">
+    <h2>Student Log In</h2>
+    <p class="welcome">Log in with the roll number and password given to you at admission.</p>
+    <label>Roll Number</label>
+    <input type="text" id="loginRoll">
+    <label>Password</label>
+    <input type="password" id="loginPass" onkeydown="if(event.key==='Enter') doLogin()">
+    <div style="margin-top:16px;">
+      <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="doLogin()">Log In</button>
+    </div>
+    <p class="err" id="loginErr"></p>
+  </div>
+
+  <div id="portalArea" style="display:none;">
+    <div class="card">
+      <h2 id="welcomeName">Welcome</h2>
+      <p class="welcome" id="welcomeMeta"></p>
+    </div>
+    <div class="tabs" id="subjectTabs"></div>
+    <div class="card" id="filesCard">
+      <div id="filesList"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  let students = { items: [] };
+  let resources = { subjects: [] };
+  let currentSubject = null;
+
+  async function sha256Hex(str){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function loadJSON(path){
+    const res = await fetch(path, { cache: 'no-store' });
+    if(!res.ok) throw new Error('Could not load ' + path);
+    return res.json();
+  }
+
+  async function doLogin(){
+    const roll = document.getElementById('loginRoll').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    const errEl = document.getElementById('loginErr');
+    errEl.style.display = 'none';
+    if(!roll || !pass){
+      errEl.textContent = 'Enter both roll number and password.';
+      errEl.style.display = 'block';
+      return;
+    }
+    try{
+      students = await loadJSON('content/students.json');
+      resources = await loadJSON('content/resources.json');
+    }catch(e){
+      errEl.textContent = 'Could not reach the portal data. Try again shortly.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const hash = await sha256Hex(pass);
+    const match = (students.items || []).find(s => s.roll_no === roll && s.password_hash === hash);
+    if(!match){
+      errEl.textContent = 'Roll number or password is incorrect.';
+      errEl.style.display = 'block';
+      return;
+    }
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('portalArea').style.display = 'block';
+    document.getElementById('welcomeName').textContent = 'Welcome, ' + (match.name || 'Student');
+    document.getElementById('welcomeMeta').textContent = [match.class_section, match.major].filter(Boolean).join(' · ');
+    renderSubjectTabs();
+  }
+
+  function renderSubjectTabs(){
+    const wrap = document.getElementById('subjectTabs');
+    wrap.innerHTML = '';
+    (resources.subjects || []).forEach((subj, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'tab' + (i === 0 ? ' active' : '');
+      btn.textContent = subj.name;
+      btn.onclick = () => selectSubject(subj.name, btn);
+      wrap.appendChild(btn);
+    });
+    if(resources.subjects && resources.subjects.length) selectSubject(resources.subjects[0].name);
+  }
+
+  function selectSubject(name, btnEl){
+    currentSubject = name;
+    document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.toggle('active', t === btnEl || t.textContent === name));
+    const subj = (resources.subjects || []).find(s => s.name === name);
+    const list = document.getElementById('filesList');
+    list.innerHTML = '';
+    if(!subj || !subj.files || !subj.files.length){
+      list.innerHTML = '<p class="empty-note">No resources uploaded for this subject yet.</p>';
+      return;
+    }
+    subj.files.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'file-row';
+      row.innerHTML = `
+        <div><span class="ftype mono">${(f.type || 'file')}</span><span class="fname">${escapeHTML(f.title || 'Untitled')}</span></div>
+        <div class="file-actions">
+          <a class="btn btn-sm" href="${f.url}" target="_blank" rel="noopener">Download</a>
+          <button class="btn btn-sm" onclick="shareFile('${encodeURI(f.url)}','${escapeAttr(f.title)}')">Share</button>
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+
+  async function shareFile(url, title){
+    if(navigator.share){
+      try{ await navigator.share({ title, url }); return; }catch(e){ /* user cancelled */ }
+    }
+    try{
+      await navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard.');
+    }catch(e){
+      prompt('Copy this link:', url);
+    }
+  }
+
+  function escapeHTML(str){ return String(str||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function escapeAttr(str){ return String(str||'').replace(/'/g, "\\'"); }
+</script>
+
+</body>
+</html>

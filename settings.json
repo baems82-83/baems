@@ -1,0 +1,11 @@
+{
+  "subjects": [
+    { "name": "Physics", "files": [] },
+    { "name": "Chemistry", "files": [] },
+    { "name": "Biology", "files": [] },
+    { "name": "Mathematics", "files": [] },
+    { "name": "Computer Science", "files": [] },
+    { "name": "English", "files": [] },
+    { "name": "Nepali", "files": [] }
+  ]
+}

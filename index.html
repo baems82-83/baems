@@ -243,6 +243,30 @@
 
   /* notice board */
   #notices{background:var(--ink); color:var(--paper);}
+
+  .gallery-filters{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px;}
+  .gfilter{
+    padding:8px 16px; border-radius:20px; border:1.5px solid var(--ink); background:transparent;
+    font-weight:600; font-size:13px; cursor:pointer; color:var(--ink);
+  }
+  .gfilter.active{background:var(--ink); color:var(--paper);}
+  .gallery-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  .gcard{
+    border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--paper-2);
+    display:flex; flex-direction:column;
+  }
+  .gcard img{width:100%; aspect-ratio:4/3; object-fit:cover; display:block;}
+  .gcard .gbody{padding:12px 14px 14px;}
+  .gcard .gevent{font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; color:var(--lab); margin-bottom:4px;}
+  .gcard .gcaption{font-size:13.5px; color:#333c37; margin:0 0 10px;}
+  .gcard .gactions{display:flex; gap:8px;}
+  .gcard .gactions a, .gcard .gactions button{
+    flex:1; text-align:center; padding:7px 10px; border-radius:3px; border:1.5px solid var(--ink);
+    font-size:12.5px; font-weight:600; text-decoration:none; color:var(--ink); background:transparent; cursor:pointer;
+  }
+  .empty-note{color:#7a7360; font-size:14px;}
+  @media(max-width:900px){ .gallery-grid{grid-template-columns:repeat(2,1fr);} }
+  @media(max-width:560px){ .gallery-grid{grid-template-columns:1fr;} }
   #notices .section-head p{color:#c9d0cb;}
   #notices .eyebrow{color:var(--amber);}
   .board{
@@ -356,8 +380,10 @@
         <li><a href="#about">About</a></li>
         <li><a href="#subjects">Subjects</a></li>
         <li><a href="#faculty">Faculty</a></li>
+        <li><a href="#gallery">Gallery</a></li>
         <li><a href="#notices">Notices</a></li>
         <li><a href="#portal">BAEMS STUDY</a></li>
+        <li><a href="student.html">Student Login</a></li>
       </ul>
     </nav>
     <a href="#contact" class="nav-cta">Apply for Admission</a>
@@ -487,6 +513,20 @@
   </div>
 </section>
 
+<section id="gallery" style="background:var(--white); border-bottom:1px solid var(--line);">
+  <div class="section-inner">
+    <div class="section-head">
+      <div class="eyebrow">Gallery</div>
+      <h2>Around campus</h2>
+      <p>Photos from labs, events and activities. Download or share any of them.</p>
+    </div>
+    <div class="gallery-filters" id="galleryFilters"></div>
+    <div class="gallery-grid" id="galleryGrid">
+      <p class="empty-note">No photos posted yet — check back soon.</p>
+    </div>
+  </div>
+</section>
+
 <section id="notices">
   <div class="section-inner">
     <div class="section-head">
@@ -539,8 +579,8 @@
   <div class="section-inner portal-grid">
     <div>
       <div class="eyebrow">Student portal</div>
-      <h2><span class="baems-mark">BAEMS STUDY</span> — results, routines and notices online</h2>
-      <p style="color:#3a423e; max-width:44ch; margin-bottom:26px;">Students log in with the ID issued at admission. Lost your credentials? Ask at the science office — they're reset on the spot.</p>
+      <h2><span class="baems-mark">BAEMS STUDY</span> — subject resources, online</h2>
+      <p style="color:#3a423e; max-width:44ch; margin-bottom:26px;">Log in with your roll number and password to browse and download subject-wise notes, slides and past papers uploaded by your teachers.</p>
       <div class="id-card">
         <div class="strip"></div>
         <div class="row"><span>BAGESHWARI ACADEMY</span><span>+2 SCIENCE</span></div>
@@ -549,13 +589,9 @@
       </div>
     </div>
     <div class="login-box">
-      <label for="rollno">Roll number</label>
-      <input id="rollno" type="text" placeholder="e.g. 24S-114">
-      <label for="dob">Date of birth</label>
-      <input id="dob" type="text" placeholder="DD/MM/YYYY">
-      <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="tryLogin()">Log in</button>
-      <div id="loginMsg"></div>
-      <div class="login-note">This is a front-end preview of BAEMS STUDY. Real logins, saved results and notice history need a small backend — happy to help set that up whenever you're ready.</div>
+      <p style="margin:0 0 18px; color:#3a423e; font-size:14.5px;">Lost your password? Ask at the science office — it can be reset from the admin panel on the spot.</p>
+      <a href="student.html" class="btn btn-primary" style="width:100%; justify-content:center; text-decoration:none;">Go to Student Portal →</a>
+      <div class="login-note">Teachers: your login is at the same admin panel used to manage the site, with an extra Resources tab for uploading materials.</div>
     </div>
   </div>
 </section>
@@ -605,20 +641,6 @@
       detailBox.classList.add('active');
     });
   });
-
-  function tryLogin(){
-    const roll = document.getElementById('rollno').value.trim();
-    const dob = document.getElementById('dob').value.trim();
-    const msg = document.getElementById('loginMsg');
-    msg.style.display = 'block';
-    if(!roll || !dob){
-      msg.style.background = '#f6e3d9'; msg.style.color = '#7a3b12';
-      msg.textContent = 'Enter both your roll number and date of birth.';
-      return;
-    }
-    msg.style.background = '#e4ede9'; msg.style.color = '#1f4d46';
-    msg.textContent = 'This is a design preview — connect a backend to enable real logins.';
-  }
 
   function submitApply(e){
     e.preventDefault();
@@ -696,9 +718,65 @@
       </div>`).join('');
   }
 
+  let galleryItems = [];
+  let galleryFilter = 'All';
+
+  async function loadGallery(){
+    const dat = await loadJSON('content/gallery.json');
+    if(!dat || !Array.isArray(dat.items)) return;
+    galleryItems = dat.items;
+    if(!galleryItems.length) return;
+    const cats = ['All', ...new Set(galleryItems.map(g => g.category).filter(Boolean))];
+    const filterWrap = document.getElementById('galleryFilters');
+    filterWrap.innerHTML = cats.map(c => `<button class="gfilter${c==='All'?' active':''}" data-cat="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join('');
+    filterWrap.querySelectorAll('.gfilter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterWrap.querySelectorAll('.gfilter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        galleryFilter = btn.dataset.cat;
+        renderGallery();
+      });
+    });
+    renderGallery();
+  }
+
+  function renderGallery(){
+    const grid = document.getElementById('galleryGrid');
+    const items = galleryFilter === 'All' ? galleryItems : galleryItems.filter(g => g.category === galleryFilter);
+    if(!items.length){
+      grid.innerHTML = '<p class="empty-note">No photos in this category yet.</p>';
+      return;
+    }
+    grid.innerHTML = items.map(g => `
+      <div class="gcard">
+        <img src="${g.image_url}" alt="${escapeHTML(g.caption || g.event || 'Gallery photo')}" loading="lazy">
+        <div class="gbody">
+          <div class="gevent">${escapeHTML(g.event || g.category || '')}</div>
+          <p class="gcaption">${escapeHTML(g.caption || '')}</p>
+          <div class="gactions">
+            <a href="${g.image_url}" download target="_blank" rel="noopener">Download</a>
+            <button onclick="shareGalleryImage('${encodeURI(g.image_url)}','${(g.caption||'').replace(/'/g,"\\'")}')">Share</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function shareGalleryImage(url, caption){
+    if(navigator.share){
+      try{ await navigator.share({ title: caption || 'BAEMS STUDY Gallery', url }); return; }catch(e){ /* cancelled */ }
+    }
+    try{
+      await navigator.clipboard.writeText(url);
+      alert('Image link copied to clipboard.');
+    }catch(e){
+      prompt('Copy this link:', url);
+    }
+  }
+
   loadSettings();
   loadNotices();
   loadFaculty();
+  loadGallery();
 </script>
 
 </body>
