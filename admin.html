@@ -96,7 +96,6 @@
   </div>
   <div style="display:flex; align-items:center; gap:10px;">
     <span class="status off mono" id="connStatus">Not connected</span>
-    <button class="icon-btn" id="gearBtn" title="Connection setup" onclick="toggleSetup()" style="display:none;">⚙</button>
     <button class="btn btn-outline btn-sm" id="logoutBtn" onclick="logout()" style="display:none;">Log out</button>
   </div>
 </header>
@@ -118,38 +117,6 @@
       <button class="btn btn-primary" onclick="doLogin()" style="width:100%; justify-content:center;">Log In</button>
     </div>
     <p class="small-note" id="loginError" style="color:var(--danger); display:none;"></p>
-  </div>
-
-  <div class="card" id="setupCard" style="display:none;">
-    <h2>Connection Setup <span class="small-note">(one-time, per device)</span></h2>
-    <p class="hint">
-      This admin tool talks directly to GitHub and Cloudinary from your browser — nothing passes through any other server. These details are saved only in this browser's local storage.
-      You'll need: <b>1)</b> a GitHub token with write access to <span class="mono">baems82-83/baems</span>, and <b>2)</b> a Cloudinary unsigned upload preset.
-    </p>
-    <div class="setup-grid">
-      <div>
-        <label>GitHub Personal Access Token</label>
-        <input type="password" id="ghToken" placeholder="github_pat_...">
-        <label>Repository</label>
-        <input type="text" id="ghRepo" value="baems82-83/baems">
-        <label>Branch</label>
-        <input type="text" id="ghBranch" value="main">
-      </div>
-      <div>
-        <label>Cloudinary Cloud Name</label>
-        <input type="text" id="cldCloud" value="tvp2hzjn">
-        <label>Cloudinary Unsigned Upload Preset</label>
-        <input type="text" id="cldPreset" placeholder="e.g. ml_default" value="ml_default">
-        <p class="small-note">Create this once in Cloudinary → Settings → Upload → Upload presets → Add upload preset → Signing mode: <b>Unsigned</b>. Copy its name here.</p>
-      </div>
-    </div>
-    <div class="actions">
-      <button class="btn btn-primary" onclick="connect()">Save Connection &amp; Load</button>
-      <button class="btn btn-outline btn-sm" onclick="disconnect()">Forget connection on this device</button>
-    </div>
-    <p class="small-note">
-      GitHub token: Settings → Developer settings → Personal access tokens → Fine-grained tokens → New token → limit repository access to just <span class="mono">baems</span> → Permissions → Contents: <b>Read and write</b>.
-    </p>
   </div>
 
   <div id="workArea" style="display:none;">
@@ -253,7 +220,7 @@
         <h2>Staff (Teacher) Accounts</h2>
         <p class="hint">
           Create login accounts for teachers. Teachers log in on this same page (choose "Teacher" at login) and get the Gallery and Resources tabs only — not Site Settings, Notices, Faculty, or Students.
-          <br><b>Important:</b> a teacher still needs the same GitHub connection (Connection Setup) to save anything, which technically grants repo write access — the tab restriction is a convenience, not a hard security wall. Only give teacher logins to people you trust with that.
+          <br><b>Important:</b> a teacher's save uses the same GitHub token embedded in this file — the tab restriction is a UI convenience, not a hard security wall. Only give teacher logins to people you'd trust with full admin access too.
         </p>
         <div id="staffList"></div>
         <div class="actions">
@@ -299,10 +266,25 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // NOTE: this is a basic front-door gate, not real security — anyone who views this file's
-  // source can read these values. It just keeps casual visitors out; the actual write access
-  // is protected by the GitHub token entered in Connection Setup, which is what really matters.
-  const LS_KEY = 'baems_admin_creds_v1';
+  // ============================================================================
+  // ⚠️ SECURITY WARNING — READ BEFORE EDITING
+  // The GitHub token below is embedded directly in this file. Since admin.html
+  // is served publicly by Netlify, ANYONE who visits /admin.html and views the
+  // page source (or opens browser dev tools) can read this token and get write
+  // access to the "baems82-83/baems" repository. This is not a "technical users
+  // only" risk — it is fully public. Only put a token here that is scoped to
+  // ONLY this one repository (fine-grained token, Contents: Read and write, no
+  // other repos, no other permissions) so the worst case is limited to this
+  // repo's files, not your whole GitHub account.
+  // ============================================================================
+  const GH_CONFIG = {
+    token: 'PASTE_YOUR_GITHUB_FINE_GRAINED_TOKEN_HERE',   // github_pat_...
+    repo: 'baems82-83/baems',
+    branch: 'main',
+    cloud: 'tvp2hzjn',
+    preset: 'ml_default'
+  };
+
   const SESSION_KEY = 'baems_admin_logged_in';
   const SESSION_ROLE_KEY = 'baems_admin_role';
   let creds = null;
@@ -332,14 +314,6 @@
     return res.json();
   }
 
-  function loadCredsFromStorage(){
-    try{
-      const raw = localStorage.getItem(LS_KEY);
-      if(!raw) return null;
-      return JSON.parse(raw);
-    }catch(e){ return null; }
-  }
-
   function setConnStatus(on){
     const el = document.getElementById('connStatus');
     el.textContent = on ? 'Connected · ' + creds.repo + ' · ' + currentRole : 'Not connected';
@@ -361,7 +335,7 @@
     if(loginRole === 'admin'){
       // NOTE: this is a basic front-door gate, not real security — anyone who views this file's
       // source can read these values. It just keeps casual visitors out; the actual write access
-      // is protected by the GitHub token entered in Connection Setup, which is what really matters.
+      // is protected by the GitHub token in GH_CONFIG above, which is what really matters.
       if(u === 'admin' && p === 'baems2063'){
         sessionStorage.setItem(SESSION_KEY, '1');
         sessionStorage.setItem(SESSION_ROLE_KEY, 'admin');
@@ -396,16 +370,9 @@
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(SESSION_ROLE_KEY);
     document.getElementById('loginCard').style.display = 'block';
-    document.getElementById('setupCard').style.display = 'none';
     document.getElementById('workArea').style.display = 'none';
-    document.getElementById('gearBtn').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'none';
     document.getElementById('loginPass').value = '';
-  }
-
-  function toggleSetup(){
-    const el = document.getElementById('setupCard');
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
   }
 
   function applyRoleVisibility(role){
@@ -420,23 +387,9 @@
   async function enterApp(role){
     currentRole = role || sessionStorage.getItem(SESSION_ROLE_KEY) || 'admin';
     document.getElementById('loginCard').style.display = 'none';
-    document.getElementById('gearBtn').style.display = 'inline-block';
     document.getElementById('logoutBtn').style.display = 'inline-block';
     applyRoleVisibility(currentRole);
-
-    const saved = loadCredsFromStorage();
-    if(saved && saved.token){
-      document.getElementById('ghToken').value = saved.token || '';
-      document.getElementById('ghRepo').value = saved.repo || 'baems82-83/baems';
-      document.getElementById('ghBranch').value = saved.branch || 'main';
-      document.getElementById('cldCloud').value = saved.cloud || 'tvp2hzjn';
-      document.getElementById('cldPreset').value = saved.preset || 'ml_default';
-      await connect(true);
-    }else{
-      // first time on this device — show the one-time connection setup
-      document.getElementById('setupCard').style.display = 'block';
-      toast('First time on this device — fill in Connection Setup below.');
-    }
+    await connect();
   }
 
   window.addEventListener('DOMContentLoaded', () => {
@@ -445,35 +398,17 @@
     }
   });
 
-  async function connect(silent){
-    creds = {
-      token: document.getElementById('ghToken').value.trim(),
-      repo: document.getElementById('ghRepo').value.trim(),
-      branch: document.getElementById('ghBranch').value.trim() || 'main',
-      cloud: document.getElementById('cldCloud').value.trim(),
-      preset: document.getElementById('cldPreset').value.trim()
-    };
-    if(!creds.token || !creds.repo){
-      toast('Enter at least a GitHub token and repository.', false);
+  async function connect(){
+    creds = { ...GH_CONFIG };
+    if(!creds.token || creds.token.indexOf('PASTE_YOUR') === 0){
+      toast('No GitHub token has been set up in this file yet — see admin.html\'s GH_CONFIG.', false);
       return;
     }
-    localStorage.setItem(LS_KEY, JSON.stringify(creds));
     const ok = await loadAll();
     if(ok){
       setConnStatus(true);
-      document.getElementById('setupCard').style.display = 'none';
       document.getElementById('workArea').style.display = 'block';
-      if(!silent) toast('Connected. Content loaded from GitHub.');
     }
-  }
-
-  function disconnect(){
-    localStorage.removeItem(LS_KEY);
-    creds = null;
-    setConnStatus(false);
-    document.getElementById('workArea').style.display = 'none';
-    document.getElementById('setupCard').style.display = 'block';
-    toast('Connection forgotten on this device.');
   }
 
   function ghHeaders(){
