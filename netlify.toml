@@ -1,8 +1,777 @@
-[build]
-  publish = "."
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAEMS STUDY | Bageshwari Academy E.M. School — +2 Science, Kohalpur, Banke</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
-    X-Content-Type-Options = "nosniff"
+<!-- Primary SEO -->
+<meta name="description" content="BAEMS STUDY is the official +2 Science portal of Bageshwari Academy E.M. School, Kohalpur-10, Banke. NEB-affiliated Physics, Chemistry, Biology, Computer Science and Mathematics with CEE/IOE/IOM entrance preparation. Check notices, routines and results online.">
+<meta name="keywords" content="BAEMS STUDY, Bageshwari Academy, Bageshwari Academy E.M. School, +2 Science Kohalpur, +2 Science Banke, NEB Science college Banke, CEE preparation Nepal, IOE IOM entrance Banke, science college Kohalpur Nepalgunj">
+<meta name="author" content="Bageshwari Academy E.M. School">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://baems.netlify.app/">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="apple-touch-icon" href="assets/logo.png">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BAEMS STUDY">
+<meta property="og:title" content="BAEMS STUDY | Bageshwari Academy E.M. School — +2 Science">
+<meta property="og:description" content="NEB-affiliated +2 Science at Bageshwari Academy E.M. School, Kohalpur-10, Banke. Notices, routines, results and CEE/IOE/IOM entrance prep — all in one place.">
+<meta property="og:image" content="https://baems.netlify.app/assets/logo.png">
+<meta property="og:url" content="https://baems.netlify.app/">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="BAEMS STUDY | Bageshwari Academy E.M. School">
+<meta name="twitter:description" content="NEB-affiliated +2 Science, Kohalpur-10, Banke. Notices, routines, results and entrance prep in one place.">
+<meta name="twitter:image" content="https://baems.netlify.app/assets/logo.png">
+
+<!-- Structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "School",
+  "name": "Bageshwari Academy E.M. School",
+  "alternateName": "BAEMS STUDY",
+  "url": "https://baems.netlify.app/",
+  "logo": "https://baems.netlify.app/assets/logo.png",
+  "foundingDate": "2063",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Kohalpur-10",
+    "addressLocality": "Banke",
+    "addressCountry": "NP"
+  },
+  "sameAs": []
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#182352;
+    --paper:#faf3da;
+    --paper-2:#f1e3ac;
+    --lab:#22306e;
+    --lab-light:#354793;
+    --amber:#c1451f;
+    --slate:#1f9fc4;
+    --line: rgba(24,35,82,0.18);
+    --white:#fffdf6;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  a{color:inherit;}
+  img{max-width:100%;display:block;}
+
+  /* graph paper texture */
+  .graph-bg{
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* NAV */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(242,241,232,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{
+    max-width:1180px; margin:0 auto; padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{
+    width:46px;height:46px;border-radius:50%;
+    background:var(--white);
+    object-fit:contain; object-position:center;
+    padding:3px; border:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .brand-text .name{font-size:16px; font-weight:600; font-family:'Fraunces',serif;}
+  .brand-text .sub{font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--lab); opacity:0.85;}
+  nav ul{list-style:none; display:flex; gap:28px; margin:0; padding:0;}
+  nav a{
+    text-decoration:none; font-size:14px; font-weight:500;
+    padding:6px 2px; border-bottom:2px solid transparent;
+    transition:border-color 0.2s;
+  }
+  nav a:hover{border-color:var(--amber);}
+  .nav-cta{
+    background:var(--lab); color:var(--white); padding:9px 18px;
+    border-radius:3px; font-size:13.5px; font-weight:600;
+    text-decoration:none; white-space:nowrap;
+  }
+  .menu-btn{display:none; background:none; border:none; cursor:pointer;}
+
+  /* HERO */
+  .hero{
+    position:relative; overflow:hidden;
+    padding:80px 24px 60px;
+    border-bottom:1px solid var(--line);
+  }
+  .hero-inner{
+    max-width:1180px; margin:0 auto;
+    display:grid; grid-template-columns:1.1fr 0.9fr; gap:50px; align-items:center;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--lab); margin-bottom:16px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:''; width:26px; height:1px; background:var(--amber);}
+  .hero h1{
+    font-size:clamp(34px, 4.6vw, 54px); line-height:1.06; margin:0 0 20px;
+  }
+  .hero h1 em{font-style:italic; color:var(--lab);}
+  .hero p.lede{font-size:17px; max-width:46ch; color:#3a423e; margin:0 0 30px;}
+  .hero-ctas{display:flex; gap:14px; flex-wrap:wrap;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:13px 24px; border-radius:3px; font-weight:600; font-size:14.5px;
+    text-decoration:none; border:1.5px solid transparent; cursor:pointer;
+  }
+  .btn-primary{background:var(--amber); color:#221605;}
+  .btn-primary:hover{background:#c97f26;}
+  .btn-outline{border-color:var(--ink); color:var(--ink); background:transparent;}
+  .btn-outline:hover{background:var(--ink); color:var(--paper);}
+
+  /* orbit signature element */
+  .orbit-wrap{
+    position:relative; aspect-ratio:1/1; max-width:400px; margin:0 auto;
+  }
+  .orbit-wrap svg{width:100%; height:100%;}
+  .orbit-ring{fill:none; stroke:var(--lab); stroke-opacity:0.35; stroke-width:1;}
+  .orbit-electron{fill:var(--amber);}
+  .orbit-nucleus{fill:var(--lab);}
+  .orbit-label{font-family:'IBM Plex Mono', monospace; font-size:9px; fill:var(--ink); opacity:0.6;}
+
+  @keyframes spin1{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  @keyframes spin2{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+  .spin-a{animation:spin1 9s linear infinite; transform-origin:center;}
+  .spin-b{animation:spin2 13s linear infinite; transform-origin:center;}
+  .spin-c{animation:spin1 17s linear infinite; transform-origin:center;}
+
+  /* routine strip */
+  .routine{
+    max-width:1180px; margin:0 auto; padding:0 24px 70px;
+  }
+  .routine-table{
+    display:grid; grid-template-columns:repeat(4,1fr);
+    border:1px solid var(--ink); border-radius:2px; overflow:hidden;
+  }
+  .routine-cell{
+    padding:22px 20px; border-right:1px solid var(--ink); background:var(--white);
+  }
+  .routine-cell:last-child{border-right:none;}
+  .routine-cell .num{font-family:'Fraunces',serif; font-size:30px; font-weight:600; color:var(--lab);}
+  .routine-cell .lab{font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:#5b6560; margin-top:4px;}
+
+  section{padding:80px 24px;}
+  .section-inner{max-width:1180px; margin:0 auto;}
+  .section-head{max-width:640px; margin-bottom:44px;}
+  .section-head .eyebrow{margin-bottom:12px;}
+  .section-head h2{font-size:clamp(26px,3vw,36px); margin:0 0 12px;}
+  .section-head p{color:#3a423e; margin:0; font-size:15.5px;}
+
+  #about{background:var(--paper-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  .about-grid{display:grid; grid-template-columns:1fr 1fr; gap:50px;}
+  .about-grid p{margin:0 0 16px; color:#333c37; font-size:15.5px;}
+  .about-list{list-style:none; margin:20px 0 0; padding:0;}
+  .about-list li{
+    padding:12px 0; border-top:1px solid var(--line);
+    display:flex; gap:12px; font-size:14.5px;
+  }
+  .about-list li::before{content:'§'; color:var(--amber); font-weight:700;}
+
+  /* periodic tiles */
+  .tiles{
+    display:grid; grid-template-columns:repeat(7,1fr); gap:10px;
+  }
+  .tile{
+    background:var(--white); border:1px solid var(--ink); border-radius:2px;
+    padding:12px 10px; aspect-ratio:0.85/1; cursor:pointer;
+    display:flex; flex-direction:column; justify-content:space-between;
+    transition:transform 0.18s, box-shadow 0.18s, background 0.18s;
+    position:relative;
+  }
+  .tile:hover{transform:translateY(-4px); box-shadow:4px 6px 0 var(--ink); background:#fff;}
+  .tile .period{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--slate);}
+  .tile .sym{font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:var(--lab); line-height:1;}
+  .tile .name{font-size:10.5px; text-transform:uppercase; letter-spacing:0.02em; color:var(--ink);}
+  .tile-detail{
+    display:none; margin-top:16px; padding:16px 18px;
+    background:var(--white); border:1px solid var(--ink); border-radius:2px; font-size:14px; color:#333;
+  }
+  .tile-detail.active{display:block;}
+
+  /* faculty */
+  .faculty-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:22px;}
+  .faculty-card{
+    background:var(--white); border:1px solid var(--line); border-radius:4px; padding:22px;
+  }
+  .avatar{
+    width:56px; height:56px; border-radius:50%; background:var(--slate); color:var(--white);
+    display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:600;
+    margin-bottom:14px; font-size:18px;
+  }
+  .faculty-card .fname{font-weight:600; font-size:15.5px;}
+  .faculty-card .frole{font-size:12.5px; color:var(--lab); margin:2px 0 10px; font-family:'IBM Plex Mono',monospace;}
+  .faculty-card .fnote{font-size:13.5px; color:#4a524d; margin:0;}
+
+  /* notice board */
+  #notices{background:var(--ink); color:var(--paper);}
+
+  .gallery-filters{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px;}
+  .gfilter{
+    padding:8px 16px; border-radius:20px; border:1.5px solid var(--ink); background:transparent;
+    font-weight:600; font-size:13px; cursor:pointer; color:var(--ink);
+  }
+  .gfilter.active{background:var(--ink); color:var(--paper);}
+  .gallery-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  .gcard{
+    border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--paper-2);
+    display:flex; flex-direction:column;
+  }
+  .gcard img{width:100%; aspect-ratio:4/3; object-fit:cover; display:block;}
+  .gcard .gbody{padding:12px 14px 14px;}
+  .gcard .gevent{font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; color:var(--lab); margin-bottom:4px;}
+  .gcard .gcaption{font-size:13.5px; color:#333c37; margin:0 0 10px;}
+  .gcard .gactions{display:flex; gap:8px;}
+  .gcard .gactions a, .gcard .gactions button{
+    flex:1; text-align:center; padding:7px 10px; border-radius:3px; border:1.5px solid var(--ink);
+    font-size:12.5px; font-weight:600; text-decoration:none; color:var(--ink); background:transparent; cursor:pointer;
+  }
+  .empty-note{color:#7a7360; font-size:14px;}
+  @media(max-width:900px){ .gallery-grid{grid-template-columns:repeat(2,1fr);} }
+  @media(max-width:560px){ .gallery-grid{grid-template-columns:1fr;} }
+  #notices .section-head p{color:#c9d0cb;}
+  #notices .eyebrow{color:var(--amber);}
+  .board{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:20px;
+  }
+  .pin-card{
+    background:#fdfbf2; color:var(--ink); border-radius:2px; padding:22px 20px 20px;
+    position:relative; box-shadow:0 6px 14px rgba(0,0,0,0.25);
+    transform:rotate(var(--r,0deg));
+  }
+  .pin-card:nth-child(1){--r:-1.2deg;}
+  .pin-card:nth-child(2){--r:0.8deg;}
+  .pin-card:nth-child(3){--r:-0.5deg;}
+  .pin-card:nth-child(4){--r:1deg;}
+  .pin-card:nth-child(5){--r:-0.8deg;}
+  .pin-card:nth-child(6){--r:0.5deg;}
+  .pin{
+    position:absolute; top:-8px; left:50%; transform:translateX(-50%);
+    width:14px; height:14px; border-radius:50%; background:var(--amber);
+    box-shadow:0 2px 3px rgba(0,0,0,0.4);
+  }
+  .pin-tag{
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+    text-transform:uppercase; letter-spacing:0.05em; padding:3px 8px; border-radius:2px;
+    background:var(--lab); color:var(--white); margin-bottom:10px;
+  }
+  .pin-card.exam .pin-tag{background:var(--amber); color:#221605;}
+  .pin-card.holiday .pin-tag{background:var(--slate);}
+  .pin-card h4{margin:0 0 6px; font-size:15.5px; font-family:'Fraunces',serif;}
+  .pin-card .date{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#6b6558; margin-bottom:8px;}
+  .pin-card p{margin:0; font-size:13.5px; color:#3a3a34;}
+
+  /* portal */
+  #portal{background:var(--paper);}
+  .baems-mark{
+    color:var(--amber); font-style:italic;
+    border-bottom:2px solid var(--slate); padding-bottom:1px;
+  }
+  .portal-grid{display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:start;}
+  .id-card{
+    background:var(--lab); color:var(--white); border-radius:8px; padding:26px;
+    max-width:340px; position:relative; box-shadow:6px 6px 0 var(--amber);
+  }
+  .id-card .strip{height:8px; background:var(--amber); border-radius:4px; margin-bottom:20px;}
+  .id-card .row{display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px; font-family:'IBM Plex Mono',monospace; opacity:0.9;}
+  .id-card .stud{font-family:'Fraunces',serif; font-size:20px; margin:8px 0 2px;}
+  .login-box{
+    background:var(--white); border:1px solid var(--ink); border-radius:4px; padding:28px;
+  }
+  .login-box label{font-size:12.5px; text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:6px; color:#4a524d;}
+  .login-box input{
+    width:100%; padding:11px 12px; margin-bottom:16px; border:1px solid var(--ink);
+    border-radius:2px; font-family:'IBM Plex Sans',sans-serif; font-size:14px; background:var(--white);
+  }
+  .login-note{
+    font-size:12.5px; color:#5b6560; margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);
+  }
+  #loginMsg{font-size:13.5px; margin-top:12px; display:none; padding:10px 12px; border-radius:2px;}
+
+  /* contact */
+  #contact{background:var(--paper-2); border-top:1px solid var(--line);}
+  .contact-grid{display:grid; grid-template-columns:1fr 1fr; gap:50px;}
+  .contact-list{list-style:none; padding:0; margin:0;}
+  .contact-list li{padding:14px 0; border-top:1px solid var(--line); font-size:14.5px; display:flex; gap:14px;}
+  .contact-list li:first-child{border-top:none;}
+  .contact-list .k{font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; color:var(--lab); width:90px; flex-shrink:0; padding-top:2px;}
+  form.apply{display:flex; flex-direction:column; gap:14px;}
+  form.apply input, form.apply textarea{
+    padding:12px 14px; border:1px solid var(--ink); border-radius:2px; font-family:'IBM Plex Sans',sans-serif; font-size:14px; background:var(--white);
+  }
+  form.apply textarea{resize:vertical; min-height:90px;}
+
+  footer{
+    padding:34px 24px; text-align:center; font-size:12.5px; color:#5b6560;
+    border-top:1px solid var(--line);
+  }
+
+  @media(max-width:900px){
+    .hero-inner, .about-grid, .portal-grid, .contact-grid{grid-template-columns:1fr;}
+    .tiles{grid-template-columns:repeat(4,1fr);}
+    .faculty-grid{grid-template-columns:repeat(2,1fr);}
+    .board{grid-template-columns:1fr 1fr;}
+    .routine-table{grid-template-columns:1fr 1fr;}
+    .routine-cell:nth-child(2){border-right:none;}
+    nav ul{display:none;}
+    .menu-btn{display:block;}
+  }
+  @media(max-width:560px){
+    .tiles{grid-template-columns:repeat(3,1fr);}
+    .board{grid-template-columns:1fr;}
+    .routine-table{grid-template-columns:1fr 1fr;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .spin-a,.spin-b,.spin-c{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav-inner">
+    <div class="brand">
+      <img src="assets/logo.png" alt="BAEMS STUDY logo" class="brand-mark" id="brandLogo">
+      <div class="brand-text">
+        <div class="name" id="brandName">BAEMS STUDY</div>
+        <div class="sub" id="brandSub">Bageshwari Academy E.M. School</div>
+      </div>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="#about">About</a></li>
+        <li><a href="#subjects">Subjects</a></li>
+        <li><a href="#faculty">Faculty</a></li>
+        <li><a href="#gallery">Gallery</a></li>
+        <li><a href="#notices">Notices</a></li>
+        <li><a href="#portal">BAEMS STUDY</a></li>
+        <li><a href="student.html">Student Login</a></li>
+      </ul>
+    </nav>
+    <a href="#contact" class="nav-cta">Apply for Admission</a>
+  </div>
+</header>
+
+<section class="hero graph-bg">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow">NEB-affiliated · Grades 11–12</div>
+      <h1>Two years to build the <em>foundation</em> your board exams and entrance tests will stand on.</h1>
+      <p class="lede" id="heroLede">Bageshwari Academy E.M. School's +2 Science stream pairs full NEB coursework with dedicated CEE, IOE and IOM entrance preparation — taught by faculty who mark the actual board papers.</p>
+      <div class="hero-ctas">
+        <a href="#contact" class="btn btn-primary">Apply for Admission</a>
+        <a href="#notices" class="btn btn-outline">View Notices</a>
+      </div>
+    </div>
+    <div class="orbit-wrap">
+      <svg viewBox="0 0 300 300">
+        <circle class="orbit-ring" cx="150" cy="150" r="60"/>
+        <circle class="orbit-ring" cx="150" cy="150" r="95"/>
+        <circle class="orbit-ring" cx="150" cy="150" r="130"/>
+        <circle class="orbit-nucleus" cx="150" cy="150" r="10"/>
+        <g class="spin-a"><circle class="orbit-electron" cx="150" cy="90" r="6"/></g>
+        <g class="spin-b"><circle class="orbit-electron" cx="245" cy="150" r="5"/></g>
+        <g class="spin-c"><circle class="orbit-electron" cx="150" cy="20" r="4.5"/></g>
+        <text class="orbit-label" x="150" y="295" text-anchor="middle">PROGRAM · +2 SCIENCE</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<div class="routine">
+  <div class="routine-table">
+    <div class="routine-cell"><div class="num" id="statEst">2063</div><div class="lab">Est. (B.S.)</div></div>
+    <div class="routine-cell"><div class="num" id="statPassRate">94%</div><div class="lab">NEB pass rate '25</div></div>
+    <div class="routine-cell"><div class="num" id="statFaculty">18</div><div class="lab">Science faculty</div></div>
+    <div class="routine-cell"><div class="num" id="statLabHours">6</div><div class="lab">Lab hours / week</div></div>
+  </div>
+</div>
+
+<section id="about">
+  <div class="section-inner about-grid">
+    <div>
+      <div class="eyebrow">About the program</div>
+      <h2>Built around the NEB syllabus — and what comes after it</h2>
+      <p>Most students in this stream aren't just clearing board exams; they're aiming at CEE, IOE, IOM or CMAT the same year. We plan both from day one instead of treating entrance prep as an afterthought in the second year.</p>
+      <p>Classes run in small sections so lab time is real lab time, not a demonstration from the back row. Every unit test is set in board-exam format so students walk into Grade 12 finals having already sat one two dozen times over.</p>
+    </div>
+    <ul class="about-list">
+      <li>Compulsory: English, Nepali</li>
+      <li>Major: Physics, Chemistry, Biology or Computer Science, Mathematics</li>
+      <li>Weekly diagnostic tests with NEB-style marking</li>
+      <li>Separate CEE / IOE / IOM entrance batch, evenings</li>
+      <li>Fully equipped Physics, Chemistry and Biology labs</li>
+    </ul>
+  </div>
+</section>
+
+<section id="subjects">
+  <div class="section-inner">
+    <div class="section-head">
+      <div class="eyebrow">Subjects on offer</div>
+      <h2>The stream, laid out like a periodic table</h2>
+      <p>Tap a tile for what it covers. Students take both compulsory subjects plus four majors — three sciences and mathematics, or biology swapped for computer science.</p>
+    </div>
+    <div class="tiles" id="tileGrid">
+      <div class="tile" data-detail="Mechanics, waves, optics, electricity and modern physics — with weekly lab sessions covering measurement, circuits and optics benches.">
+        <div class="period">4 pd/wk</div><div class="sym">Ph</div><div class="name">Physics</div>
+      </div>
+      <div class="tile" data-detail="Organic, inorganic and physical chemistry, run alongside titration, qualitative analysis and organic synthesis practicals.">
+        <div class="period">4 pd/wk</div><div class="sym">Ch</div><div class="name">Chemistry</div>
+      </div>
+      <div class="tile" data-detail="Botany, zoology, genetics and human physiology, with dissection and microscopy lab blocks each fortnight.">
+        <div class="period">4 pd/wk</div><div class="sym">Bio</div><div class="name">Biology</div>
+      </div>
+      <div class="tile" data-detail="Calculus, algebra, coordinate geometry, statistics and probability — the shared backbone for both science majors.">
+        <div class="period">5 pd/wk</div><div class="sym">Ma</div><div class="name">Mathematics</div>
+      </div>
+      <div class="tile" data-detail="Programming fundamentals, data structures and database concepts, offered as an alternative to Biology for the CS-focused track.">
+        <div class="period">3 pd/wk</div><div class="sym">CS</div><div class="name">Comp. Sci.</div>
+      </div>
+      <div class="tile" data-detail="Compulsory English: comprehension, grammar and writing skills carried over from board requirements.">
+        <div class="period">2 pd/wk</div><div class="sym">Eng</div><div class="name">English</div>
+      </div>
+      <div class="tile" data-detail="Compulsory Nepali: language and literature, assessed per the standard NEB syllabus.">
+        <div class="period">2 pd/wk</div><div class="sym">Ne</div><div class="name">Nepali</div>
+      </div>
+    </div>
+    <div class="tile-detail" id="tileDetailBox"></div>
+  </div>
+</section>
+
+<section id="faculty" style="background:var(--white); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+  <div class="section-inner">
+    <div class="section-head">
+      <div class="eyebrow">Faculty</div>
+      <h2>Teachers who also examine the board papers</h2>
+      <p>A sample of the department — full staff list is shared at orientation.</p>
+    </div>
+    <div class="faculty-grid" id="facultyGrid">
+      <div class="faculty-card">
+        <div class="avatar">RS</div>
+        <div class="fname">R. Sharma</div>
+        <div class="frole">Physics · Dept. Head</div>
+        <p class="fnote">18 years teaching Grade 11–12 Physics; NEB paper-setter, 2019–2023.</p>
+      </div>
+      <div class="faculty-card">
+        <div class="avatar">AT</div>
+        <div class="fname">A. Thapa</div>
+        <div class="frole">Chemistry</div>
+        <p class="fnote">Runs the organic chemistry lab block and the Saturday CEE chemistry clinic.</p>
+      </div>
+      <div class="faculty-card">
+        <div class="avatar">PK</div>
+        <div class="fname">P. K.C.</div>
+        <div class="frole">Biology</div>
+        <p class="fnote">Coordinates dissection labs and the annual field biology trip to Bardiya.</p>
+      </div>
+      <div class="faculty-card">
+        <div class="avatar">SB</div>
+        <div class="fname">S. Bista</div>
+        <div class="frole">Mathematics</div>
+        <p class="fnote">Leads the entrance-prep calculus track for CEE and IOE aspirants.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="gallery" style="background:var(--white); border-bottom:1px solid var(--line);">
+  <div class="section-inner">
+    <div class="section-head">
+      <div class="eyebrow">Gallery</div>
+      <h2>Around campus</h2>
+      <p>Photos from labs, events and activities. Download or share any of them.</p>
+    </div>
+    <div class="gallery-filters" id="galleryFilters"></div>
+    <div class="gallery-grid" id="galleryGrid">
+      <p class="empty-note">No photos posted yet — check back soon.</p>
+    </div>
+  </div>
+</section>
+
+<section id="notices">
+  <div class="section-inner">
+    <div class="section-head">
+      <div class="eyebrow">Notice board</div>
+      <h2>What's pinned up this week</h2>
+      <p>Same notices as the physical board outside the staff room.</p>
+    </div>
+    <div class="board" id="noticeBoard">
+      <div class="pin-card exam"><span class="pin"></span>
+        <span class="pin-tag">Exam</span>
+        <h4>First Terminal Routine</h4>
+        <div class="date">Posted 02 Jul 2026</div>
+        <p>Grade 11 &amp; 12 first terminal exams begin 20 Shrawan. Full routine posted outside Room 4.</p>
+      </div>
+      <div class="pin-card holiday"><span class="pin"></span>
+        <span class="pin-tag">Holiday</span>
+        <h4>School closed — Naag Panchami</h4>
+        <div class="date">Posted 29 Jun 2026</div>
+        <p>No classes on the public holiday. Regular routine resumes the following day.</p>
+      </div>
+      <div class="pin-card"><span class="pin"></span>
+        <span class="pin-tag">Notice</span>
+        <h4>Lab fee — second installment</h4>
+        <div class="date">Posted 27 Jun 2026</div>
+        <p>Due at the accounts window by the 15th. Late payments carry a NPR 200 surcharge.</p>
+      </div>
+      <div class="pin-card"><span class="pin"></span>
+        <span class="pin-tag">Notice</span>
+        <h4>CEE mock test — registration open</h4>
+        <div class="date">Posted 24 Jun 2026</div>
+        <p>Grade 12 students may register for the entrance mock test at the science office.</p>
+      </div>
+      <div class="pin-card exam"><span class="pin"></span>
+        <span class="pin-tag">Exam</span>
+        <h4>Grade 11 result publication</h4>
+        <div class="date">Posted 18 Jun 2026</div>
+        <p>Annual results are up on the student portal. Marksheets available from the counter.</p>
+      </div>
+      <div class="pin-card"><span class="pin"></span>
+        <span class="pin-tag">Notice</span>
+        <h4>Parent-teacher meeting</h4>
+        <div class="date">Posted 12 Jun 2026</div>
+        <p>Scheduled for the last Friday of the month, 10 AM onward in respective classrooms.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="portal">
+  <div class="section-inner portal-grid">
+    <div>
+      <div class="eyebrow">Student portal</div>
+      <h2><span class="baems-mark">BAEMS STUDY</span> — subject resources, online</h2>
+      <p style="color:#3a423e; max-width:44ch; margin-bottom:26px;">Log in with your roll number and password to browse and download subject-wise notes, slides and past papers uploaded by your teachers.</p>
+      <div class="id-card">
+        <div class="strip"></div>
+        <div class="row"><span>BAGESHWARI ACADEMY</span><span>+2 SCIENCE</span></div>
+        <div class="stud">Student Name</div>
+        <div class="row"><span>ROLL NO. 24S-114</span><span>SECTION B</span></div>
+      </div>
+    </div>
+    <div class="login-box">
+      <p style="margin:0 0 18px; color:#3a423e; font-size:14.5px;">Lost your password? Ask at the science office — it can be reset from the admin panel on the spot.</p>
+      <a href="student.html" class="btn btn-primary" style="width:100%; justify-content:center; text-decoration:none;">Go to Student Portal →</a>
+      <div class="login-note">Teachers: your login is at the same admin panel used to manage the site, with an extra Resources tab for uploading materials.</div>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="section-inner contact-grid">
+    <div>
+      <div class="eyebrow">Admissions</div>
+      <h2>Get in touch</h2>
+      <ul class="contact-list">
+        <li><span class="k">Address</span><span id="contactAddress">Kohalpur-10, Banke</span></li>
+        <li><span class="k">Phone</span><span id="contactPhone">+977-81-XXXXXX</span></li>
+        <li><span class="k">Email</span><span id="contactEmail">admissions@bageshwariacademy.edu.np</span></li>
+        <li><span class="k">Office hrs</span><span>Sun–Fri, 10 AM – 4 PM</span></li>
+      </ul>
+    </div>
+    <div>
+      <div class="eyebrow">Application</div>
+      <form class="apply" onsubmit="return submitApply(event)">
+        <input type="text" placeholder="Full name" required>
+        <input type="text" placeholder="Phone number" required>
+        <input type="text" placeholder="Intended major (e.g. Physics/CS)">
+        <textarea placeholder="Anything we should know?"></textarea>
+        <button type="submit" class="btn btn-primary">Send application</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer id="footerText">
+  Bageshwari Academy E.M. School · +2 Science · Kohalpur-10, Banke — placeholder content (phone, faculty, notices) — swap in your real details anytime.
+</footer>
+
+<script>
+  const tiles = document.querySelectorAll('.tile');
+  const detailBox = document.getElementById('tileDetailBox');
+  tiles.forEach(t => {
+    t.addEventListener('click', () => {
+      const already = t.classList.contains('active-tile');
+      tiles.forEach(x => x.classList.remove('active-tile'));
+      if(already){
+        detailBox.classList.remove('active');
+        return;
+      }
+      t.classList.add('active-tile');
+      detailBox.textContent = t.dataset.detail;
+      detailBox.classList.add('active');
+    });
+  });
+
+  function submitApply(e){
+    e.preventDefault();
+    alert('This form is a preview. Connect it to an email service or backend to start receiving applications.');
+    return false;
+  }
+
+  // ---- Content loaded from Supabase (editable via /admin.html) ----
+  const SUPABASE_URL = 'https://xbmdumntkpxafswhbgvb.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWR1bW50a3B4YWZzd2hiZ3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NTU0OTgsImV4cCI6MjA5OTMzMTQ5OH0.savMSYTicFxTYbrzrxPeZGLuyNAnNN1ykJL1CpNBmTA';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function escapeHTML(str){
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function loadSettings(){
+    const { data: s, error } = await sb.from('settings').select('*').eq('id',1).single();
+    if(error || !s) return;
+    const setText = (id, val) => { const el = document.getElementById(id); if(el && val) el.textContent = val; };
+    setText('brandName', s.portal_name);
+    setText('brandSub', s.school_name);
+    setText('heroLede', s.tagline);
+    setText('statEst', s.established_bs);
+    setText('statPassRate', s.pass_rate);
+    setText('statFaculty', s.faculty_count);
+    setText('statLabHours', s.lab_hours);
+    setText('contactAddress', s.address);
+    setText('contactPhone', s.phone);
+    setText('contactEmail', s.email);
+    if(s.logo_url){
+      const logoEl = document.getElementById('brandLogo');
+      if(logoEl) logoEl.src = s.logo_url;
+    }
+    if(s.school_name || s.address){
+      const footer = document.getElementById('footerText');
+      if(footer) footer.textContent = `${s.school_name || 'Bageshwari Academy E.M. School'} · +2 Science · ${s.address || 'Kohalpur-10, Banke'}`;
+    }
+    document.title = `${s.portal_name || 'BAEMS STUDY'} | ${s.school_name || 'Bageshwari Academy E.M. School'} — +2 Science`;
+  }
+
+  async function loadNotices(){
+    const { data: items, error } = await sb.from('notices').select('*').order('sort_order');
+    if(error || !items || !items.length) return;
+    const board = document.getElementById('noticeBoard');
+    if(!board) return;
+    board.innerHTML = items.map(n => {
+      const cls = (n.tag || '').toLowerCase() === 'exam' ? 'exam' : (n.tag || '').toLowerCase() === 'holiday' ? 'holiday' : '';
+      return `<div class="pin-card ${cls}"><span class="pin"></span>
+        <span class="pin-tag">${escapeHTML(n.tag || 'Notice')}</span>
+        <h4>${escapeHTML(n.title || '')}</h4>
+        <div class="date">${escapeHTML(n.date || '')}</div>
+        <p>${escapeHTML(n.body || '')}</p>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadFaculty(){
+    const { data: items, error } = await sb.from('faculty').select('*').order('sort_order');
+    if(error || !items || !items.length) return;
+    const grid = document.getElementById('facultyGrid');
+    if(!grid) return;
+    grid.innerHTML = items.map(f => `
+      <div class="faculty-card">
+        <div class="avatar">${escapeHTML(f.initials || (f.name || '?').slice(0,2).toUpperCase())}</div>
+        <div class="fname">${escapeHTML(f.name || '')}</div>
+        <div class="frole">${escapeHTML(f.role || '')}</div>
+        <p class="fnote">${escapeHTML(f.note || '')}</p>
+      </div>`).join('');
+  }
+
+  let galleryItems = [];
+  let galleryFilter = 'All';
+
+  async function loadGallery(){
+    const { data: items, error } = await sb.from('gallery').select('*').order('sort_order');
+    if(error || !items || !items.length) return;
+    galleryItems = items;
+    const cats = ['All', ...new Set(galleryItems.map(g => g.category).filter(Boolean))];
+    const filterWrap = document.getElementById('galleryFilters');
+    filterWrap.innerHTML = cats.map(c => `<button class="gfilter${c==='All'?' active':''}" data-cat="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join('');
+    filterWrap.querySelectorAll('.gfilter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterWrap.querySelectorAll('.gfilter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        galleryFilter = btn.dataset.cat;
+        renderGallery();
+      });
+    });
+    renderGallery();
+  }
+
+  function renderGallery(){
+    const grid = document.getElementById('galleryGrid');
+    const items = galleryFilter === 'All' ? galleryItems : galleryItems.filter(g => g.category === galleryFilter);
+    if(!items.length){
+      grid.innerHTML = '<p class="empty-note">No photos in this category yet.</p>';
+      return;
+    }
+    grid.innerHTML = items.map(g => `
+      <div class="gcard">
+        <img src="${g.image_url}" alt="${escapeHTML(g.caption || g.event || 'Gallery photo')}" loading="lazy">
+        <div class="gbody">
+          <div class="gevent">${escapeHTML(g.event || g.category || '')}</div>
+          <p class="gcaption">${escapeHTML(g.caption || '')}</p>
+          <div class="gactions">
+            <a href="${g.image_url}" download target="_blank" rel="noopener">Download</a>
+            <button onclick="shareGalleryImage('${encodeURI(g.image_url)}','${(g.caption||'').replace(/'/g,"\\'")}')">Share</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function shareGalleryImage(url, caption){
+    if(navigator.share){
+      try{ await navigator.share({ title: caption || 'BAEMS STUDY Gallery', url }); return; }catch(e){ /* cancelled */ }
+    }
+    try{
+      await navigator.clipboard.writeText(url);
+      alert('Image link copied to clipboard.');
+    }catch(e){
+      prompt('Copy this link:', url);
+    }
+  }
+
+  loadSettings();
+  loadNotices();
+  loadFaculty();
+  loadGallery();
+</script>
+
+</body>
+</html>

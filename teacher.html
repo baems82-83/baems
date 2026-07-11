@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>BAEMS STUDY — Teacher Portal</title>
+<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#182352; --paper:#faf3da; --paper-2:#f1e3ac;
+    --lab:#22306e; --lab-light:#354793; --amber:#c1451f; --slate:#1f9fc4;
+    --line: rgba(24,35,82,0.18); --white:#fffdf6;
+    --danger:#b7291f; --ok:#1d7a4c;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans',sans-serif;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:700; margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  header{
+    background:var(--ink); color:var(--white); padding:18px 24px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  header .title{display:flex; align-items:center; gap:12px;}
+  header img{width:36px; height:36px; border-radius:50%; background:var(--white); padding:2px;}
+  header h1{font-size:19px; color:var(--white);}
+  header .status{font-size:12px; font-family:'IBM Plex Mono',monospace; padding:5px 10px; border-radius:3px;}
+  .status.on{background:#1d7a4c33; color:#8ee6b4;}
+  .status.off{background:#b7291f33; color:#ffb3ac;}
+  main{max-width:960px; margin:0 auto; padding:28px 20px 80px;}
+  .card{background:var(--white); border:1px solid var(--line); border-radius:6px; padding:24px; margin-bottom:22px;}
+  .card h2{font-size:20px; margin-bottom:6px;}
+  .card .hint{font-size:13px; color:#565f6b; margin:0 0 18px; line-height:1.5;}
+  label{font-size:12px; text-transform:uppercase; letter-spacing:0.04em; color:#4a524d; display:block; margin:14px 0 5px;}
+  label:first-child{margin-top:0;}
+  input[type=text], input[type=password], textarea, select{
+    width:100%; padding:10px 12px; border:1px solid var(--ink); border-radius:3px;
+    font-family:'IBM Plex Sans',sans-serif; font-size:14px; background:var(--white); color:var(--ink);
+  }
+  textarea{resize:vertical; min-height:70px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:3px;
+    font-weight:600; font-size:14px; border:1.5px solid var(--ink); cursor:pointer; background:transparent; color:var(--ink);
+  }
+  .btn-primary{background:var(--amber); border-color:var(--amber); color:#221605;}
+  .btn-primary:hover{background:#a83a19;}
+  .btn-outline:hover{background:var(--ink); color:var(--paper);}
+  .btn-danger{border-color:var(--danger); color:var(--danger);}
+  .btn-danger:hover{background:var(--danger); color:var(--white);}
+  .btn-sm{padding:6px 12px; font-size:12.5px;}
+  .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+  .tabs{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;}
+  .tab{
+    padding:9px 18px; border-radius:20px; border:1.5px solid var(--ink); background:transparent;
+    font-weight:600; font-size:13.5px; cursor:pointer; color:var(--ink);
+  }
+  .tab.active{background:var(--ink); color:var(--paper);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .item{
+    border:1px solid var(--line); border-radius:5px; padding:16px; margin-bottom:14px; position:relative; background:#fffef9;
+  }
+  .item-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;}
+  .item-top .idx{font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8a8060;}
+  .item-controls{display:flex; gap:6px;}
+  .icon-btn{
+    border:1px solid var(--line); background:var(--white); border-radius:3px; cursor:pointer;
+    width:28px; height:28px; font-size:13px; line-height:1;
+  }
+  .icon-btn:hover{background:var(--paper-2);}
+  .logo-preview{display:flex; align-items:center; gap:16px; margin-top:6px;}
+  .logo-preview img{width:64px; height:64px; object-fit:contain; border:1px solid var(--line); border-radius:6px; background:var(--white); padding:4px;}
+  .toast{
+    position:fixed; bottom:24px; right:24px; padding:13px 18px; border-radius:5px; font-size:13.5px;
+    max-width:340px; box-shadow:0 6px 16px rgba(0,0,0,0.2); display:none; z-index:99;
+  }
+  .toast.ok{background:var(--ok); color:#fff;}
+  .toast.err{background:var(--danger); color:#fff;}
+  .setup-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .small-note{font-size:12px; color:#7a7360; margin-top:6px;}
+  a{color:var(--slate);}
+  .spinner{display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media(max-width:640px){ .row2, .setup-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <img src="assets/logo.png" alt="logo" onerror="this.style.display='none'">
+    <h1>BAEMS STUDY — Teacher Portal</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span class="status off mono" id="connStatus">Not connected</span>
+    <button class="btn btn-outline btn-sm" id="logoutBtn" onclick="logout()" style="display:none;">Log out</button>
+  </div>
+</header>
+
+<main>
+
+  <div class="card" id="loginCard" style="max-width:380px; margin:60px auto;">
+    <h2>Teacher Log In</h2>
+    <p class="hint">Log in with the email + password your Admin created for you in Supabase.</p>
+    <label>Email</label>
+    <input type="text" id="loginEmail" autocomplete="username">
+    <label>Password</label>
+    <input type="password" id="loginPass" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
+    <div class="actions">
+      <button class="btn btn-primary" onclick="doLogin()" style="width:100%; justify-content:center;">Log In</button>
+    </div>
+    <p class="small-note" id="loginError" style="color:var(--danger); display:none;"></p>
+  </div>
+
+  <div id="workArea" style="display:none;">
+    <div class="tabs">
+      <button class="tab active" data-tab="gallery" onclick="showTab('gallery')">Gallery</button>
+      <button class="tab" data-tab="resources" onclick="showTab('resources')">Resources</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="loadAll()">↻ Reload</button>
+    </div>
+
+    <!-- GALLERY -->
+    <div class="panel active" id="panel-gallery">
+      <div class="card">
+        <h2>Gallery</h2>
+        <p class="hint">Photos shown publicly on the site's Gallery section, grouped by category/event. Visitors can download and share these.</p>
+
+        <div class="item" style="background:var(--paper-2);">
+          <h3 style="font-size:15px; margin-bottom:12px;">Add photos from one event</h3>
+          <p class="small-note" style="margin-top:-6px; margin-bottom:12px;">Pick several photos at once from the same event — one row is created per photo, all sharing this category/event/caption.</p>
+          <div class="row2">
+            <div><label>Category</label><input type="text" id="bulkCategory" placeholder="e.g. Lab, Sports, Event"></div>
+            <div><label>Event Name</label><input type="text" id="bulkEvent"></div>
+          </div>
+          <label>Caption (applied to all)</label>
+          <input type="text" id="bulkCaption">
+          <div class="actions">
+            <input type="file" id="bulkPhotoInput" accept="image/*" multiple style="display:none;" onchange="uploadBulkPhotos(event)">
+            <button class="btn btn-primary" onclick="document.getElementById('bulkPhotoInput').click()">+ Choose Photos (multiple)</button>
+          </div>
+          <p class="small-note" id="bulkUploadStatus"></p>
+        </div>
+
+        <h3 style="font-size:15px; margin:22px 0 12px;">All photos (edit individually)</h3>
+        <div id="galleryList"></div>
+        <div class="actions">
+          <button class="btn btn-outline" onclick="addGalleryItem()">+ Add Single Photo</button>
+          <button class="btn btn-primary" onclick="saveGallery()">Save Gallery</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESOURCES -->
+    <div class="panel" id="panel-resources">
+      <div class="card">
+        <h2>Learning Resources</h2>
+        <p class="hint">Files students see in the Student Portal, organized by subject. Upload PDFs, Word docs, PowerPoint slides, or images.</p>
+        <label>Subject</label>
+        <select id="resourceSubjectSelect" onchange="renderResourceFiles()">
+          <option>Physics</option><option>Chemistry</option><option>Biology</option>
+          <option>Mathematics</option><option>Computer Science</option><option>English</option><option>Nepali</option>
+        </select>
+        <div id="resourceFilesList" style="margin-top:16px;"></div>
+        <div class="actions">
+          <input type="file" id="resourceFileInput" style="display:none;" onchange="uploadResourceFile(event)">
+          <button class="btn btn-outline" onclick="document.getElementById('resourceFileInput').click()">+ Upload File</button>
+        </div>
+        <p class="small-note" id="resourceUploadStatus"></p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = 'https://xbmdumntkpxafswhbgvb.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWR1bW50a3B4YWZzd2hiZ3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NTU0OTgsImV4cCI6MjA5OTMzMTQ5OH0.savMSYTicFxTYbrzrxPeZGLuyNAnNN1ykJL1CpNBmTA';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const BUCKET = 'baems-files';
+
+  let data = { gallery: [], resources: {} };
+
+  function toast(msg, ok=true){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (ok ? 'ok' : 'err');
+    t.style.display = 'block';
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => t.style.display = 'none', 4500);
+  }
+  function setConnStatus(on){
+    const el = document.getElementById('connStatus');
+    el.textContent = on ? 'Connected · teacher' : 'Not connected';
+    el.className = 'mono status ' + (on ? 'on' : 'off');
+  }
+  function escapeHTML(str){ return String(str||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function escapeAttr(str){ return String(str||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  async function doLogin(){
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPass').value;
+    const errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+    if(!email || !password){
+      errEl.textContent = 'Enter both email and password.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){
+      errEl.textContent = error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+    await afterLogin();
+  }
+
+  async function afterLogin(){
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user) return;
+    const { data: roleRow, error } = await sb.from('staff_roles').select('role,name').eq('user_id', user.id).maybeSingle();
+    if(error || !roleRow){
+      toast('Logged in, but no role is assigned yet. Ask an Admin to add your account under Staff Accounts.', false);
+      await sb.auth.signOut();
+      return;
+    }
+    if(roleRow.role !== 'teacher'){
+      toast('This is an Admin account — please log in at /admin.html instead.', false);
+      await sb.auth.signOut();
+      return;
+    }
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'inline-block';
+    setConnStatus(true);
+    document.getElementById('workArea').style.display = 'block';
+    await loadAll();
+  }
+
+  async function logout(){
+    await sb.auth.signOut();
+    document.getElementById('loginCard').style.display = 'block';
+    document.getElementById('workArea').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('loginPass').value = '';
+    setConnStatus(false);
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if(session) await afterLogin();
+  });
+
+  async function uploadToStorage(file, folder){
+    const path = folder + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+    if(error) throw error;
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    return pub.publicUrl;
+  }
+
+  async function loadAll(){
+    try{
+      const [gl, rs] = await Promise.all([
+        sb.from('gallery').select('*').order('sort_order'),
+        sb.from('resources').select('*').order('id')
+      ]);
+      data.gallery = gl.data || [];
+      data.resources = {};
+      (rs.data || []).forEach(r => {
+        if(!data.resources[r.subject]) data.resources[r.subject] = [];
+        data.resources[r.subject].push(r);
+      });
+      renderGallery(); renderResourceFiles();
+      return true;
+    }catch(e){ toast('Load failed: ' + e.message, false); return false; }
+  }
+
+  // ---------------- GALLERY ----------------
+  function renderGallery(){
+    const list = document.getElementById('galleryList');
+    list.innerHTML = '';
+    data.gallery.forEach((g, i) => list.appendChild(galleryItemEl(g, i)));
+  }
+  function galleryItemEl(g, i){
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <div class="item-top">
+        <span class="idx mono">#${i+1}</span>
+        <div class="item-controls">
+          <button class="icon-btn" onclick="moveItem(${i},-1)">↑</button>
+          <button class="icon-btn" onclick="moveItem(${i},1)">↓</button>
+          <button class="icon-btn" onclick="deleteLocalItem(${i})">✕</button>
+        </div>
+      </div>
+      <div class="logo-preview">
+        <img src="${g.image_url || 'assets/logo.png'}" alt="">
+        <div>
+          <input type="file" accept="image/*" onchange="uploadGalleryImage(event,${i})">
+          <div class="small-note" id="gimgstatus${i}"></div>
+        </div>
+      </div>
+      <div class="row2">
+        <div><label>Category</label><input type="text" value="${escapeAttr(g.category)}" oninput="data.gallery[${i}].category=this.value"></div>
+        <div><label>Event Name</label><input type="text" value="${escapeAttr(g.event)}" oninput="data.gallery[${i}].event=this.value"></div>
+      </div>
+      <label>Caption</label>
+      <input type="text" value="${escapeAttr(g.caption)}" oninput="data.gallery[${i}].caption=this.value">
+    `;
+    return div;
+  }
+  function addGalleryItem(){ data.gallery.push({category:'',event:'',caption:'',image_url:''}); renderGallery(); }
+  async function uploadGalleryImage(e, i){
+    const file = e.target.files[0];
+    if(!file) return;
+    const statusEl = document.getElementById('gimgstatus'+i);
+    statusEl.textContent = 'Uploading…';
+    try{
+      const url = await uploadToStorage(file, 'gallery');
+      data.gallery[i].image_url = url;
+      statusEl.textContent = 'Uploaded ✓';
+      renderGallery();
+    }catch(err){ statusEl.textContent=''; toast('Upload failed: '+err.message, false); }
+  }
+  async function saveGallery(){
+    try{
+      const del = await sb.from('gallery').delete().gte('id',0);
+      if(del.error) throw del.error;
+      if(data.gallery.length){
+        const payload = data.gallery.map((g,i)=>({category:g.category,event:g.event,caption:g.caption,image_url:g.image_url,sort_order:i}));
+        const { error } = await sb.from('gallery').insert(payload);
+        if(error) throw error;
+      }
+      toast('Gallery saved.');
+      loadAll();
+    }catch(e){ toast(e.message, false); }
+  }
+  async function uploadBulkPhotos(e){
+    const files = Array.from(e.target.files || []);
+    if(!files.length) return;
+    const category = document.getElementById('bulkCategory').value.trim();
+    const event = document.getElementById('bulkEvent').value.trim();
+    const caption = document.getElementById('bulkCaption').value.trim();
+    const statusEl = document.getElementById('bulkUploadStatus');
+    let done = 0;
+    for(const file of files){
+      statusEl.textContent = `Uploading ${done+1} of ${files.length}…`;
+      try{
+        const url = await uploadToStorage(file, 'gallery');
+        const { error } = await sb.from('gallery').insert({ category, event, caption, image_url: url, sort_order: 0 });
+        if(error) throw error;
+        done++;
+      }catch(err){ toast(`Photo ${done+1} failed: ${err.message}`, false); }
+    }
+    statusEl.textContent = `Uploaded ${done} of ${files.length} photo(s) ✓`;
+    document.getElementById('bulkCategory').value = '';
+    document.getElementById('bulkEvent').value = '';
+    document.getElementById('bulkCaption').value = '';
+    e.target.value = '';
+    await loadAll();
+  }
+  function moveItem(i, dir){
+    const arr = data.gallery;
+    const j = i + dir;
+    if(j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    renderGallery();
+  }
+  function deleteLocalItem(i){
+    if(!confirm('Remove this item? Click Save afterward to make it permanent.')) return;
+    data.gallery.splice(i, 1);
+    renderGallery();
+  }
+
+  // ---------------- RESOURCES ----------------
+  function renderResourceFiles(){
+    const sel = document.getElementById('resourceSubjectSelect');
+    const list = document.getElementById('resourceFilesList');
+    const files = data.resources[sel.value] || [];
+    list.innerHTML = '';
+    if(!files.length){ list.innerHTML = '<p class="small-note">No files uploaded for this subject yet.</p>'; return; }
+    files.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.innerHTML = `
+        <div class="item-top">
+          <span class="idx mono">${(f.type||'file').toUpperCase()}</span>
+          <div class="item-controls"><button class="icon-btn" onclick="deleteResourceFile(${f.id})">✕</button></div>
+        </div>
+        <input type="text" value="${escapeAttr(f.title)}" onchange="renameResourceFile(${f.id}, this.value)" placeholder="File title">
+      `;
+      list.appendChild(row);
+    });
+  }
+  async function renameResourceFile(id, title){
+    const { error } = await sb.from('resources').update({ title }).eq('id', id);
+    if(error) toast(error.message, false);
+  }
+  async function deleteResourceFile(id){
+    if(!confirm('Delete this file?')) return;
+    const { error } = await sb.from('resources').delete().eq('id', id);
+    if(error){ toast(error.message, false); return; }
+    await loadAll();
+  }
+  async function uploadResourceFile(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const statusEl = document.getElementById('resourceUploadStatus');
+    statusEl.textContent = 'Uploading…';
+    const ext = (file.name.split('.').pop()||'').toLowerCase();
+    const subject = document.getElementById('resourceSubjectSelect').value;
+    try{
+      const url = await uploadToStorage(file, 'resources/' + subject.replace(/\s+/g,'_'));
+      const { error } = await sb.from('resources').insert({ subject, title: file.name.replace(/\.[^.]+$/, ''), type: ext, url });
+      if(error) throw error;
+      statusEl.textContent = 'Uploaded ✓';
+      await loadAll();
+    }catch(err){ statusEl.textContent=''; toast('Upload failed: ' + err.message, false); }
+  }
+
+  function showTab(name){
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+    if(name === 'resources') renderResourceFiles();
+  }
+</script>
+
+</body>
+</html>
