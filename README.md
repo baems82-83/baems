@@ -76,3 +76,13 @@ Netlify picks it up and redeploys automatically.
 - **Students can be managed by both Admin and Teacher** — added a Students tab to `/teacher.html` too.
 - **Admission applications go to the Admin dashboard** — the public "Apply for Admission" form now saves straight into Supabase; view/manage them in `admin.html` → Applications tab (mark as reviewed/contacted/archived, or delete).
 - Run `supabase_migration_v3.sql` once (adds the `subject` column, opens Students up to Teachers, and creates the `applications` table).
+
+## Update: Subjects editable, Faculty photos, admission button removed
+- Removed the header "Apply for Admission" button (the Contact section form + Applications tab still work).
+- **Subjects on Offer** (the periodic-table tiles) are now editable from `admin.html` → new **Subjects** tab: name, symbol, periods/week, description, reorderable.
+- **Faculty photos** — upload a real photo per faculty member in `admin.html` → Faculty tab; falls back to the initials avatar if no photo is set.
+- Run `supabase_migration_v4.sql` once (creates the `subjects` table seeded with your current 7 subjects, and adds a `photo_url` column to `faculty`).
+
+## Login "Invalid login credentials" fix
+If a newly created Admin/Teacher account can't log in with the right password, it's almost always unconfirmed email. Fix once for the whole project:
+Supabase → **Authentication → Sign In / Providers → Email** → turn **off** "Confirm email". Then recreate the user (or it'll work for existing ones on next login attempt, depending on Supabase's caching).
