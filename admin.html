@@ -120,6 +120,7 @@
       <button class="tab active" data-tab="settings" data-role="admin" onclick="showTab('settings')">Site Settings</button>
       <button class="tab" data-tab="notices" data-role="admin" onclick="showTab('notices')">Notices</button>
       <button class="tab" data-tab="faculty" data-role="admin" onclick="showTab('faculty')">Faculty</button>
+      <button class="tab" data-tab="subjects" data-role="admin" onclick="showTab('subjects')">Subjects</button>
       <button class="tab" data-tab="students" data-role="admin" onclick="showTab('students')">Students</button>
       <button class="tab" data-tab="staff" data-role="admin" onclick="showTab('staff')">Staff Accounts</button>
       <button class="tab" data-tab="applications" data-role="admin" onclick="showTab('applications')">Applications</button>
@@ -191,6 +192,19 @@
         <div class="actions">
           <button class="btn btn-outline" onclick="addFaculty()">+ Add Faculty</button>
           <button class="btn btn-primary" onclick="saveFaculty()">Save Faculty</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBJECTS -->
+    <div class="panel" id="panel-subjects">
+      <div class="card">
+        <h2>Subjects on Offer</h2>
+        <p class="hint">The periodic-table tiles on the public site. Symbol is the short code shown on the tile (e.g. "Ph").</p>
+        <div id="subjectsList"></div>
+        <div class="actions">
+          <button class="btn btn-outline" onclick="addSubject()">+ Add Subject</button>
+          <button class="btn btn-primary" onclick="saveSubjects()">Save Subjects</button>
         </div>
       </div>
     </div>
@@ -299,7 +313,7 @@
 
   let currentRole = 'admin';
   let data = {
-    settings: {}, notices: [], faculty: [], students: [], staff: [], gallery: [], applications: [],
+    settings: {}, notices: [], faculty: [], students: [], staff: [], gallery: [], applications: [], subjects: [],
     resources: {} // { Physics: [...], Chemistry: [...], ... }
   };
 
@@ -397,7 +411,7 @@
   // ---------------- LOAD ALL ----------------
   async function loadAll(){
     try{
-      const [s, n, f, st, sf, gl, rs, ap] = await Promise.all([
+      const [s, n, f, st, sf, gl, rs, ap, sub] = await Promise.all([
         sb.from('settings').select('*').eq('id',1).single(),
         sb.from('notices').select('*').order('sort_order'),
         sb.from('faculty').select('*').order('sort_order'),
@@ -405,7 +419,8 @@
         sb.from('staff_roles').select('*'),
         sb.from('gallery').select('*').order('sort_order'),
         sb.from('resources').select('*').order('id'),
-        sb.from('applications').select('*').order('created_at', { ascending: false })
+        sb.from('applications').select('*').order('created_at', { ascending: false }),
+        sb.from('subjects').select('*').order('sort_order')
       ]);
       if(s.error) throw s.error;
       data.settings = s.data || {};
@@ -415,12 +430,13 @@
       data.staff = sf.data || [];
       data.gallery = gl.data || [];
       data.applications = ap.data || [];
+      data.subjects = sub.data || [];
       data.resources = {};
       (rs.data || []).forEach(r => {
         if(!data.resources[r.subject]) data.resources[r.subject] = [];
         data.resources[r.subject].push(r);
       });
-      renderSettings(); renderNotices(); renderFaculty(); renderStudents(); renderStaff(); renderGallery(); renderResourceFiles(); renderApplications();
+      renderSettings(); renderNotices(); renderFaculty(); renderStudents(); renderStaff(); renderGallery(); renderResourceFiles(); renderApplications(); renderSubjects();
       return true;
     }catch(e){
       toast('Load failed: ' + e.message, false);
@@ -539,9 +555,16 @@
           <button class="icon-btn" onclick="deleteLocalItem('faculty',${i})">✕</button>
         </div>
       </div>
+      <div class="logo-preview">
+        <img src="${f.photo_url || 'assets/logo.png'}" alt="">
+        <div>
+          <input type="file" accept="image/*" onchange="uploadFacultyPhoto(event,${i})">
+          <div class="small-note" id="fphotostatus${i}"></div>
+        </div>
+      </div>
       <div class="row2">
         <div><label>Name</label><input type="text" value="${escapeAttr(f.name)}" oninput="data.faculty[${i}].name=this.value"></div>
-        <div><label>Initials</label><input type="text" value="${escapeAttr(f.initials)}" oninput="data.faculty[${i}].initials=this.value"></div>
+        <div><label>Initials (used if no photo)</label><input type="text" value="${escapeAttr(f.initials)}" oninput="data.faculty[${i}].initials=this.value"></div>
       </div>
       <label>Subject / Role</label>
       <input type="text" value="${escapeAttr(f.role)}" oninput="data.faculty[${i}].role=this.value">
@@ -550,13 +573,25 @@
     `;
     return div;
   }
-  function addFaculty(){ data.faculty.push({name:'',role:'',initials:'',note:''}); renderFaculty(); }
+  function addFaculty(){ data.faculty.push({name:'',role:'',initials:'',note:'',photo_url:''}); renderFaculty(); }
+  async function uploadFacultyPhoto(e, i){
+    const file = e.target.files[0];
+    if(!file) return;
+    const statusEl = document.getElementById('fphotostatus'+i);
+    statusEl.textContent = 'Uploading…';
+    try{
+      const url = await uploadToStorage(file, 'faculty');
+      data.faculty[i].photo_url = url;
+      statusEl.textContent = 'Uploaded ✓';
+      renderFaculty();
+    }catch(err){ statusEl.textContent=''; toast('Upload failed: '+err.message, false); }
+  }
   async function saveFaculty(){
     try{
       const del = await sb.from('faculty').delete().gte('id',0);
       if(del.error) throw del.error;
       if(data.faculty.length){
-        const payload = data.faculty.map((f,i)=>({name:f.name,role:f.role,initials:f.initials,note:f.note,sort_order:i}));
+        const payload = data.faculty.map((f,i)=>({name:f.name,role:f.role,initials:f.initials,note:f.note,photo_url:f.photo_url,sort_order:i}));
         const { error } = await sb.from('faculty').insert(payload);
         if(error) throw error;
       }
@@ -849,7 +884,52 @@
   }
 
   // ---------------- shared helpers ----------------
-  const RENDERERS = { notices: renderNotices, faculty: renderFaculty, students: renderStudents, staff: renderStaff, gallery: renderGallery };
+  // ---------------- SUBJECTS ----------------
+  function renderSubjects(){
+    const list = document.getElementById('subjectsList');
+    if(!list) return;
+    list.innerHTML = '';
+    data.subjects.forEach((s, i) => list.appendChild(subjectItemEl(s, i)));
+  }
+  function subjectItemEl(s, i){
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <div class="item-top">
+        <span class="idx mono">#${i+1}</span>
+        <div class="item-controls">
+          <button class="icon-btn" onclick="moveItem('subjects',${i},-1)">↑</button>
+          <button class="icon-btn" onclick="moveItem('subjects',${i},1)">↓</button>
+          <button class="icon-btn" onclick="deleteLocalItem('subjects',${i})">✕</button>
+        </div>
+      </div>
+      <div class="row2">
+        <div><label>Name</label><input type="text" value="${escapeAttr(s.name)}" oninput="data.subjects[${i}].name=this.value"></div>
+        <div><label>Symbol (short code)</label><input type="text" value="${escapeAttr(s.symbol)}" oninput="data.subjects[${i}].symbol=this.value"></div>
+      </div>
+      <label>Periods per week</label>
+      <input type="text" placeholder="e.g. 4 pd/wk" value="${escapeAttr(s.periods_per_week)}" oninput="data.subjects[${i}].periods_per_week=this.value">
+      <label>Description (shown when tile is tapped)</label>
+      <textarea oninput="data.subjects[${i}].description=this.value">${escapeHTML(s.description)}</textarea>
+    `;
+    return div;
+  }
+  function addSubject(){ data.subjects.push({name:'',symbol:'',periods_per_week:'',description:''}); renderSubjects(); }
+  async function saveSubjects(){
+    try{
+      const del = await sb.from('subjects').delete().gte('id',0);
+      if(del.error) throw del.error;
+      if(data.subjects.length){
+        const payload = data.subjects.map((s,i)=>({name:s.name,symbol:s.symbol,periods_per_week:s.periods_per_week,description:s.description,sort_order:i}));
+        const { error } = await sb.from('subjects').insert(payload);
+        if(error) throw error;
+      }
+      toast('Subjects saved.');
+      loadAll();
+    }catch(e){ toast(e.message, false); }
+  }
+
+  const RENDERERS = { notices: renderNotices, faculty: renderFaculty, students: renderStudents, staff: renderStaff, gallery: renderGallery, subjects: renderSubjects };
   function moveItem(coll, i, dir){
     const arr = data[coll];
     const j = i + dir;
