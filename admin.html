@@ -122,6 +122,7 @@
       <button class="tab" data-tab="faculty" data-role="admin" onclick="showTab('faculty')">Faculty</button>
       <button class="tab" data-tab="students" data-role="admin" onclick="showTab('students')">Students</button>
       <button class="tab" data-tab="staff" data-role="admin" onclick="showTab('staff')">Staff Accounts</button>
+      <button class="tab" data-tab="applications" data-role="admin" onclick="showTab('applications')">Applications</button>
       <button class="tab" data-tab="gallery" data-role="any" onclick="showTab('gallery')">Gallery</button>
       <button class="tab" data-tab="resources" data-role="any" onclick="showTab('resources')">Resources</button>
       <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="loadAll()">↻ Reload</button>
@@ -225,6 +226,15 @@
       </div>
     </div>
 
+    <!-- APPLICATIONS -->
+    <div class="panel" id="panel-applications">
+      <div class="card">
+        <h2>Admission Applications</h2>
+        <p class="hint">Submissions from the "Apply for Admission" form on the public site land here automatically.</p>
+        <div id="applicationsList"></div>
+      </div>
+    </div>
+
     <!-- GALLERY -->
     <div class="panel" id="panel-gallery">
       <div class="card">
@@ -289,7 +299,7 @@
 
   let currentRole = 'admin';
   let data = {
-    settings: {}, notices: [], faculty: [], students: [], staff: [], gallery: [],
+    settings: {}, notices: [], faculty: [], students: [], staff: [], gallery: [], applications: [],
     resources: {} // { Physics: [...], Chemistry: [...], ... }
   };
 
@@ -387,14 +397,15 @@
   // ---------------- LOAD ALL ----------------
   async function loadAll(){
     try{
-      const [s, n, f, st, sf, gl, rs] = await Promise.all([
+      const [s, n, f, st, sf, gl, rs, ap] = await Promise.all([
         sb.from('settings').select('*').eq('id',1).single(),
         sb.from('notices').select('*').order('sort_order'),
         sb.from('faculty').select('*').order('sort_order'),
         sb.from('students').select('*').order('id'),
         sb.from('staff_roles').select('*'),
         sb.from('gallery').select('*').order('sort_order'),
-        sb.from('resources').select('*').order('id')
+        sb.from('resources').select('*').order('id'),
+        sb.from('applications').select('*').order('created_at', { ascending: false })
       ]);
       if(s.error) throw s.error;
       data.settings = s.data || {};
@@ -403,12 +414,13 @@
       data.students = st.data || [];
       data.staff = sf.data || [];
       data.gallery = gl.data || [];
+      data.applications = ap.data || [];
       data.resources = {};
       (rs.data || []).forEach(r => {
         if(!data.resources[r.subject]) data.resources[r.subject] = [];
         data.resources[r.subject].push(r);
       });
-      renderSettings(); renderNotices(); renderFaculty(); renderStudents(); renderStaff(); renderGallery(); renderResourceFiles();
+      renderSettings(); renderNotices(); renderFaculty(); renderStudents(); renderStaff(); renderGallery(); renderResourceFiles(); renderApplications();
       return true;
     }catch(e){
       toast('Load failed: ' + e.message, false);
@@ -608,6 +620,7 @@
     list.innerHTML = '';
     data.staff.forEach((s, i) => list.appendChild(staffItemEl(s, i)));
   }
+  const SUBJECT_OPTIONS = ['Physics','Chemistry','Biology','Mathematics','Computer Science','English','Nepali'];
   function staffItemEl(s, i){
     const div = document.createElement('div');
     div.className = 'item';
@@ -621,16 +634,22 @@
       <div class="row2">
         <div><label>Name</label><input type="text" value="${escapeAttr(s.name)}" oninput="data.staff[${i}].name=this.value"></div>
         <div><label>Role</label>
-          <select onchange="data.staff[${i}].role=this.value">
+          <select onchange="data.staff[${i}].role=this.value; renderStaff();">
             <option value="admin" ${s.role==='admin'?'selected':''}>Admin</option>
             <option value="teacher" ${s.role==='teacher'?'selected':''}>Teacher</option>
           </select>
         </div>
       </div>
+      ${s.role === 'teacher' ? `
+      <label>Subject (which Resources tab this teacher manages)</label>
+      <select onchange="data.staff[${i}].subject=this.value">
+        <option value="">— choose a subject —</option>
+        ${SUBJECT_OPTIONS.map(sub => `<option value="${sub}" ${s.subject===sub?'selected':''}>${sub}</option>`).join('')}
+      </select>` : ''}
     `;
     return div;
   }
-  function addStaff(){ data.staff.push({user_id:'',name:'',role:'teacher'}); renderStaff(); }
+  function addStaff(){ data.staff.push({user_id:'',name:'',role:'teacher',subject:''}); renderStaff(); }
   async function deleteStaffRow(i){
     if(!confirm('Remove this staff role? They will lose admin/teacher access.')) return;
     const row = data.staff[i];
@@ -645,12 +664,52 @@
     try{
       for(const s of data.staff){
         if(!s.user_id) continue;
-        const { error } = await sb.from('staff_roles').upsert({ user_id:s.user_id, role:s.role, name:s.name }, { onConflict: 'user_id' });
+        const payload = { user_id:s.user_id, role:s.role, name:s.name, subject: s.role === 'teacher' ? (s.subject || null) : null };
+        const { error } = await sb.from('staff_roles').upsert(payload, { onConflict: 'user_id' });
         if(error) throw error;
       }
       toast('Staff roles saved.');
       loadAll();
     }catch(e){ toast(e.message, false); }
+  }
+
+  // ---------------- APPLICATIONS ----------------
+  function renderApplications(){
+    const list = document.getElementById('applicationsList');
+    if(!list) return;
+    if(!data.applications.length){
+      list.innerHTML = '<p class="small-note">No applications submitted yet.</p>';
+      return;
+    }
+    list.innerHTML = data.applications.map(a => `
+      <div class="item">
+        <div class="item-top">
+          <span class="idx mono">${new Date(a.created_at).toLocaleDateString()}</span>
+          <div class="item-controls"><button class="icon-btn" onclick="deleteApplication(${a.id})">✕</button></div>
+        </div>
+        <div class="row2">
+          <div><label>Name</label><div style="padding:8px 0; font-weight:600;">${escapeHTML(a.full_name)}</div></div>
+          <div><label>Phone</label><div style="padding:8px 0;">${escapeHTML(a.phone || '—')}</div></div>
+        </div>
+        <label>Intended Major</label>
+        <div style="padding:4px 0 12px;">${escapeHTML(a.intended_major || '—')}</div>
+        <label>Message</label>
+        <div style="padding:4px 0 12px; color:#3a3a34;">${escapeHTML(a.message || '—')}</div>
+        <label>Status</label>
+        <select onchange="updateApplicationStatus(${a.id}, this.value)">
+          ${['new','reviewed','contacted','archived'].map(st => `<option value="${st}" ${a.status===st?'selected':''}>${st}</option>`).join('')}
+        </select>
+      </div>`).join('');
+  }
+  async function updateApplicationStatus(id, status){
+    const { error } = await sb.from('applications').update({ status }).eq('id', id);
+    if(error) toast(error.message, false); else toast('Status updated.');
+  }
+  async function deleteApplication(id){
+    if(!confirm('Delete this application?')) return;
+    const { error } = await sb.from('applications').delete().eq('id', id);
+    if(error){ toast(error.message, false); return; }
+    await loadAll();
   }
 
   // ---------------- GALLERY ----------------

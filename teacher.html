@@ -119,6 +119,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="gallery" onclick="showTab('gallery')">Gallery</button>
       <button class="tab" data-tab="resources" onclick="showTab('resources')">Resources</button>
+      <button class="tab" data-tab="students" onclick="showTab('students')">Students</button>
       <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="loadAll()">↻ Reload</button>
     </div>
 
@@ -157,18 +158,28 @@
     <div class="panel" id="panel-resources">
       <div class="card">
         <h2>Learning Resources</h2>
-        <p class="hint">Files students see in the Student Portal, organized by subject. Upload PDFs, Word docs, PowerPoint slides, or images.</p>
+        <p class="hint" id="resourcesHint">Files students see in the Student Portal, for your assigned subject.</p>
         <label>Subject</label>
-        <select id="resourceSubjectSelect" onchange="renderResourceFiles()">
-          <option>Physics</option><option>Chemistry</option><option>Biology</option>
-          <option>Mathematics</option><option>Computer Science</option><option>English</option><option>Nepali</option>
-        </select>
+        <select id="resourceSubjectSelect" onchange="renderResourceFiles()"></select>
         <div id="resourceFilesList" style="margin-top:16px;"></div>
         <div class="actions">
           <input type="file" id="resourceFileInput" style="display:none;" onchange="uploadResourceFile(event)">
           <button class="btn btn-outline" onclick="document.getElementById('resourceFileInput').click()">+ Upload File</button>
         </div>
         <p class="small-note" id="resourceUploadStatus"></p>
+      </div>
+    </div>
+
+    <!-- STUDENTS -->
+    <div class="panel" id="panel-students">
+      <div class="card">
+        <h2>Students</h2>
+        <p class="hint">Not shown on the public site. Passwords are hashed server-side, never sent to or stored in plain text by the browser.</p>
+        <div id="studentsList"></div>
+        <div class="actions">
+          <button class="btn btn-outline" onclick="addStudent()">+ Add Student</button>
+          <button class="btn btn-primary" onclick="saveStudents()">Save Students</button>
+        </div>
       </div>
     </div>
   </div>
@@ -184,7 +195,9 @@
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const BUCKET = 'baems-files';
 
-  let data = { gallery: [], resources: {} };
+  let data = { gallery: [], resources: {}, students: [] };
+  let myName = '';
+  let mySubject = '';
 
   function toast(msg, ok=true){
     const t = document.getElementById('toast');
@@ -196,7 +209,7 @@
   }
   function setConnStatus(on){
     const el = document.getElementById('connStatus');
-    el.textContent = on ? 'Connected · teacher' : 'Not connected';
+    el.textContent = on ? 'Connected · teacher' + (mySubject ? ' · ' + mySubject : '') : 'Not connected';
     el.className = 'mono status ' + (on ? 'on' : 'off');
   }
   function escapeHTML(str){ return String(str||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
@@ -224,7 +237,7 @@
   async function afterLogin(){
     const { data: { user } } = await sb.auth.getUser();
     if(!user) return;
-    const { data: roleRow, error } = await sb.from('staff_roles').select('role,name').eq('user_id', user.id).maybeSingle();
+    const { data: roleRow, error } = await sb.from('staff_roles').select('role,name,subject').eq('user_id', user.id).maybeSingle();
     if(error || !roleRow){
       toast('Logged in, but no role is assigned yet. Ask an Admin to add your account under Staff Accounts.', false);
       await sb.auth.signOut();
@@ -234,6 +247,17 @@
       toast('This is an Admin account — please log in at /admin.html instead.', false);
       await sb.auth.signOut();
       return;
+    }
+    myName = roleRow.name || '';
+    mySubject = roleRow.subject || '';
+    const sel = document.getElementById('resourceSubjectSelect');
+    if(mySubject){
+      sel.innerHTML = `<option>${escapeHTML(mySubject)}</option>`;
+      document.getElementById('resourcesHint').textContent = `Files students see in the Student Portal, for ${mySubject}.`;
+    }else{
+      const ALL_SUBJECTS = ['Physics','Chemistry','Biology','Mathematics','Computer Science','English','Nepali'];
+      sel.innerHTML = ALL_SUBJECTS.map(s => `<option>${s}</option>`).join('');
+      document.getElementById('resourcesHint').textContent = 'No subject assigned to your account yet — ask an Admin to set one under Staff Accounts. Showing all subjects for now.';
     }
     document.getElementById('loginCard').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'inline-block';
@@ -266,17 +290,19 @@
 
   async function loadAll(){
     try{
-      const [gl, rs] = await Promise.all([
+      const [gl, rs, st] = await Promise.all([
         sb.from('gallery').select('*').order('sort_order'),
-        sb.from('resources').select('*').order('id')
+        sb.from('resources').select('*').order('id'),
+        sb.from('students').select('*').order('id')
       ]);
       data.gallery = gl.data || [];
+      data.students = st.data || [];
       data.resources = {};
       (rs.data || []).forEach(r => {
         if(!data.resources[r.subject]) data.resources[r.subject] = [];
         data.resources[r.subject].push(r);
       });
-      renderGallery(); renderResourceFiles();
+      renderGallery(); renderResourceFiles(); renderStudents();
       return true;
     }catch(e){ toast('Load failed: ' + e.message, false); return false; }
   }
@@ -422,6 +448,61 @@
       statusEl.textContent = 'Uploaded ✓';
       await loadAll();
     }catch(err){ statusEl.textContent=''; toast('Upload failed: ' + err.message, false); }
+  }
+
+  // ---------------- STUDENTS ----------------
+  function renderStudents(){
+    const list = document.getElementById('studentsList');
+    if(!list) return;
+    list.innerHTML = '';
+    data.students.forEach((s, i) => list.appendChild(studentItemEl(s, i)));
+  }
+  function studentItemEl(s, i){
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <div class="item-top">
+        <span class="idx mono">#${i+1}</span>
+        <div class="item-controls"><button class="icon-btn" onclick="deleteStudent(${i})">✕</button></div>
+      </div>
+      <div class="row2">
+        <div><label>Full Name</label><input type="text" value="${escapeAttr(s.name)}" oninput="data.students[${i}].name=this.value"></div>
+        <div><label>Roll No.</label><input type="text" value="${escapeAttr(s.roll_no)}" oninput="data.students[${i}].roll_no=this.value"></div>
+      </div>
+      <div class="row2">
+        <div><label>Class / Section</label><input type="text" value="${escapeAttr(s.class_section)}" oninput="data.students[${i}].class_section=this.value"></div>
+        <div><label>Major</label><input type="text" value="${escapeAttr(s.major)}" oninput="data.students[${i}].major=this.value"></div>
+      </div>
+      <label>Guardian Phone (optional)</label>
+      <input type="text" value="${escapeAttr(s.guardian_phone)}" oninput="data.students[${i}].guardian_phone=this.value">
+      <label>Password ${s.password_hash ? '<span class="small-note">(already set — leave blank to keep it)</span>' : ''}</label>
+      <input type="password" placeholder="Type to set/change password" oninput="stagePassword(${i},this.value)">
+    `;
+    return div;
+  }
+  async function stagePassword(i, val){
+    if(!val) return;
+    const { data: hash, error } = await sb.rpc('hash_password', { p_password: val });
+    if(error){ toast(error.message, false); return; }
+    data.students[i].password_hash = hash;
+  }
+  function addStudent(){ data.students.push({name:'',roll_no:'',class_section:'',major:'',guardian_phone:'',password_hash:null}); renderStudents(); }
+  async function deleteStudent(i){
+    if(!confirm('Remove this item? Click Save afterward to make it permanent.')) return;
+    data.students.splice(i,1);
+    renderStudents();
+  }
+  async function saveStudents(){
+    try{
+      for(const s of data.students){
+        if(!s.roll_no) continue;
+        const payload = { name:s.name, roll_no:s.roll_no, class_section:s.class_section, major:s.major, guardian_phone:s.guardian_phone, password_hash:s.password_hash };
+        const { error } = await sb.from('students').upsert(payload, { onConflict: 'roll_no' });
+        if(error) throw error;
+      }
+      toast('Students saved.');
+      loadAll();
+    }catch(e){ toast(e.message, false); }
   }
 
   function showTab(name){

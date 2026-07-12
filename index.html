@@ -612,11 +612,12 @@
     <div>
       <div class="eyebrow">Application</div>
       <form class="apply" onsubmit="return submitApply(event)">
-        <input type="text" placeholder="Full name" required>
-        <input type="text" placeholder="Phone number" required>
-        <input type="text" placeholder="Intended major (e.g. Physics/CS)">
-        <textarea placeholder="Anything we should know?"></textarea>
-        <button type="submit" class="btn btn-primary">Send application</button>
+        <input type="text" id="applyName" placeholder="Full name" required>
+        <input type="text" id="applyPhone" placeholder="Phone number" required>
+        <input type="text" id="applyMajor" placeholder="Intended major (e.g. Physics/CS)">
+        <textarea id="applyMessage" placeholder="Anything we should know?"></textarea>
+        <button type="submit" class="btn btn-primary" id="applySubmitBtn">Send application</button>
+        <p class="small-note" id="applyStatus" style="display:none; margin-top:4px;"></p>
       </form>
     </div>
   </div>
@@ -643,9 +644,36 @@
     });
   });
 
-  function submitApply(e){
+  async function submitApply(e){
     e.preventDefault();
-    alert('This form is a preview. Connect it to an email service or backend to start receiving applications.');
+    const btn = document.getElementById('applySubmitBtn');
+    const statusEl = document.getElementById('applyStatus');
+    const payload = {
+      full_name: document.getElementById('applyName').value.trim(),
+      phone: document.getElementById('applyPhone').value.trim(),
+      intended_major: document.getElementById('applyMajor').value.trim(),
+      message: document.getElementById('applyMessage').value.trim()
+    };
+    if(!payload.full_name || !payload.phone){
+      statusEl.style.display = 'block';
+      statusEl.style.color = 'var(--amber)';
+      statusEl.textContent = 'Please fill in your name and phone number.';
+      return false;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    const { error } = await sb.from('applications').insert(payload);
+    btn.disabled = false;
+    btn.textContent = 'Send application';
+    statusEl.style.display = 'block';
+    if(error){
+      statusEl.style.color = 'var(--amber)';
+      statusEl.textContent = "Couldn't send — please try again in a moment.";
+    }else{
+      statusEl.style.color = 'var(--lab)';
+      statusEl.textContent = 'Application received — we\'ll be in touch soon.';
+      e.target.reset();
+    }
     return false;
   }
 

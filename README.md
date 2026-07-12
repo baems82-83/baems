@@ -70,3 +70,9 @@ git commit -m "Split Admin/Teacher portals, add gallery bulk upload, fix RLS rec
 git push
 ```
 Netlify picks it up and redeploys automatically.
+
+## New in this update
+- **Teachers now have a subject** (Physics, Chemistry, etc.) set in `admin.html` → Staff Accounts. Their `/teacher.html` Resources tab is locked to that subject only.
+- **Students can be managed by both Admin and Teacher** — added a Students tab to `/teacher.html` too.
+- **Admission applications go to the Admin dashboard** — the public "Apply for Admission" form now saves straight into Supabase; view/manage them in `admin.html` → Applications tab (mark as reviewed/contacted/archived, or delete).
+- Run `supabase_migration_v3.sql` once (adds the `subject` column, opens Students up to Teachers, and creates the `applications` table).
