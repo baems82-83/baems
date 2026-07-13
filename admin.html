@@ -627,22 +627,35 @@
       <label>Guardian Phone (optional)</label>
       <input type="text" value="${escapeAttr(s.guardian_phone)}" oninput="data.students[${i}].guardian_phone=this.value">
       <label>Password ${s.password_hash ? '<span class="small-note">(already set — leave blank to keep it)</span>' : ''}</label>
-      <input type="password" placeholder="Type to set/change password" oninput="stagePassword('students',${i},this.value)">
+      <input type="password" placeholder="Type to set/change password, then click elsewhere" onchange="stagePassword('students',${i},this.value)">
+      <div class="small-note" id="pwstatus_students_${i}"></div>
     `;
     return div;
   }
+  let pendingPasswordHashes = {};
   async function stagePassword(kind, i, val){
     if(!val) return;
-    const { data: hash, error } = await sb.rpc('hash_password', { p_password: val });
-    if(error){ toast(error.message, false); return; }
-    if(kind === 'students') data.students[i].password_hash = hash;
+    const key = kind + '_' + i;
+    const statusEl = document.getElementById('pwstatus_' + key);
+    if(statusEl) statusEl.textContent = 'Hashing password…';
+    const p = (async () => {
+      const { data: hash, error } = await sb.rpc('hash_password', { p_password: val });
+      if(error){ toast(error.message, false); if(statusEl) statusEl.textContent = ''; return; }
+      if(kind === 'students') data.students[i].password_hash = hash;
+      if(statusEl) statusEl.textContent = 'Password ready ✓ — click Save to store it.';
+    })();
+    pendingPasswordHashes[key] = p;
+    await p;
+    delete pendingPasswordHashes[key];
   }
   function addStudent(){ data.students.push({name:'',roll_no:'',class_section:'',major:'',guardian_phone:'',password_hash:null}); renderStudents(); }
   async function saveStudents(){
     try{
+      // wait for any in-progress password hashing to finish before saving
+      await Promise.all(Object.values(pendingPasswordHashes));
       for(const s of data.students){
         if(!s.roll_no) continue;
-        const payload = { name:s.name, roll_no:s.roll_no, class_section:s.class_section, major:s.major, guardian_phone:s.guardian_phone, password_hash:s.password_hash };
+        const payload = { name:s.name, roll_no:s.roll_no.trim(), class_section:s.class_section, major:s.major, guardian_phone:s.guardian_phone, password_hash:s.password_hash };
         const { error } = await sb.from('students').upsert(payload, { onConflict: 'roll_no' });
         if(error) throw error;
       }
