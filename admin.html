@@ -568,12 +568,14 @@
       </div>
       <label>Subject / Role</label>
       <input type="text" value="${escapeAttr(f.role)}" oninput="data.faculty[${i}].role=this.value">
+      <label>Qualification</label>
+      <input type="text" placeholder="e.g. M.Sc. Physics, Tribhuvan University" value="${escapeAttr(f.qualification)}" oninput="data.faculty[${i}].qualification=this.value">
       <label>Short Note</label>
       <textarea oninput="data.faculty[${i}].note=this.value">${escapeHTML(f.note)}</textarea>
     `;
     return div;
   }
-  function addFaculty(){ data.faculty.push({name:'',role:'',initials:'',note:'',photo_url:''}); renderFaculty(); }
+  function addFaculty(){ data.faculty.push({name:'',role:'',initials:'',note:'',photo_url:'',qualification:''}); renderFaculty(); }
   async function uploadFacultyPhoto(e, i){
     const file = e.target.files[0];
     if(!file) return;
@@ -591,7 +593,7 @@
       const del = await sb.from('faculty').delete().gte('id',0);
       if(del.error) throw del.error;
       if(data.faculty.length){
-        const payload = data.faculty.map((f,i)=>({name:f.name,role:f.role,initials:f.initials,note:f.note,photo_url:f.photo_url,sort_order:i}));
+        const payload = data.faculty.map((f,i)=>({name:f.name,role:f.role,initials:f.initials,note:f.note,photo_url:f.photo_url,qualification:f.qualification,sort_order:i}));
         const { error } = await sb.from('faculty').insert(payload);
         if(error) throw error;
       }

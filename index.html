@@ -741,6 +741,7 @@
           : `<div class="avatar">${escapeHTML(f.initials || (f.name || '?').slice(0,2).toUpperCase())}</div>`}
         <div class="fname">${escapeHTML(f.name || '')}</div>
         <div class="frole">${escapeHTML(f.role || '')}</div>
+        ${f.qualification ? `<p class="fnote" style="font-style:italic; margin-bottom:6px;">${escapeHTML(f.qualification)}</p>` : ''}
         <p class="fnote">${escapeHTML(f.note || '')}</p>
       </div>`).join('');
   }
