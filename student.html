@@ -54,6 +54,7 @@
   .file-row .fname{font-weight:600; font-size:14.5px;}
   .file-actions{display:flex; gap:8px; flex-shrink:0;}
   .empty-note{color:#7a7360; font-size:14px; padding:20px 0;}
+  .small-note{color:#7a7360; font-size:12.5px;}
   .welcome{font-size:14px; color:#3a423e; margin-bottom:18px;}
 </style>
 </head>
@@ -89,6 +90,11 @@
     <div class="tabs" id="subjectTabs"></div>
     <div class="card" id="filesCard">
       <div id="filesList"></div>
+      <div style="margin-top:16px; padding-top:16px; border-top:1px dashed var(--line);">
+        <input type="file" id="uploadInput" style="display:none;" onchange="uploadFile(event)">
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('uploadInput').click()">+ Upload a file to this subject</button>
+        <p class="small-note" id="uploadStatus" style="margin-top:8px;"></p>
+      </div>
     </div>
   </div>
 </main>
@@ -98,8 +104,11 @@
   const SUPABASE_URL = 'https://xbmdumntkpxafswhbgvb.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWR1bW50a3B4YWZzd2hiZ3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NTU0OTgsImV4cCI6MjA5OTMzMTQ5OH0.savMSYTicFxTYbrzrxPeZGLuyNAnNN1ykJL1CpNBmTA';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const BUCKET = 'baems-files';
 
   let resourcesBySubject = {};
+  let currentSubject = '';
+  let myName = '';
   const SUBJECTS = ['Physics','Chemistry','Biology','Mathematics','Computer Science','English','Nepali'];
 
   async function doLogin(){
@@ -119,6 +128,7 @@
       return;
     }
     const match = data[0];
+    myName = match.name || 'Student';
     document.getElementById('loginCard').style.display = 'none';
     document.getElementById('portalArea').style.display = 'block';
     document.getElementById('welcomeName').textContent = 'Welcome, ' + (match.name || 'Student');
@@ -152,6 +162,7 @@
   }
 
   function selectSubject(name, btnEl){
+    currentSubject = name;
     document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.toggle('active', t === btnEl || t.textContent === name));
     const files = resourcesBySubject[name] || [];
     const list = document.getElementById('filesList');
@@ -164,13 +175,43 @@
       const row = document.createElement('div');
       row.className = 'file-row';
       row.innerHTML = `
-        <div><span class="ftype mono">${(f.type || 'file')}</span><span class="fname">${escapeHTML(f.title || 'Untitled')}</span></div>
+        <div><span class="ftype mono">${(f.type || 'file')}</span><span class="fname">${escapeHTML(f.title || 'Untitled')}</span>${f.uploaded_by ? ` <span class="small-note">— ${escapeHTML(f.uploaded_by)}</span>` : ''}</div>
         <div class="file-actions">
           <a class="btn btn-sm" href="${f.url}" target="_blank" rel="noopener">Download</a>
           <button class="btn btn-sm" onclick="shareFile('${encodeURI(f.url)}','${(f.title||'').replace(/'/g,"\\'")}')">Share</button>
         </div>`;
       list.appendChild(row);
     });
+  }
+
+  async function uploadFile(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const statusEl = document.getElementById('uploadStatus');
+    statusEl.textContent = 'Uploading…';
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const path = 'resources/' + currentSubject.replace(/\s+/g,'_') + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    try{
+      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+      if(upErr) throw upErr;
+      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+      const { error: insErr } = await sb.from('resources').insert({
+        subject: currentSubject,
+        title: file.name.replace(/\.[^.]+$/, ''),
+        type: ext,
+        url: pub.publicUrl,
+        uploaded_by: myName
+      });
+      if(insErr) throw insErr;
+      statusEl.textContent = 'Uploaded ✓';
+      await loadResources();
+      const activeTab = [...document.querySelectorAll('#subjectTabs .tab')].find(t => t.textContent === currentSubject);
+      selectSubject(currentSubject, activeTab);
+    }catch(err){
+      statusEl.textContent = '';
+      alert('Upload failed: ' + err.message);
+    }
+    e.target.value = '';
   }
 
   async function shareFile(url, title){

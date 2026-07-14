@@ -835,7 +835,7 @@
     try{
       const url = await uploadToStorage(file, 'resources/' + subject.replace(/\s+/g,'_'));
       const { error } = await sb.from('resources').insert({
-        subject, title: file.name.replace(/\.[^.]+$/, ''), type: ext, url
+        subject, title: file.name.replace(/\.[^.]+$/, ''), type: ext, url, uploaded_by: 'Admin'
       });
       if(error) throw error;
       statusEl.textContent = 'Uploaded ✓';

@@ -443,7 +443,7 @@
     const subject = document.getElementById('resourceSubjectSelect').value;
     try{
       const url = await uploadToStorage(file, 'resources/' + subject.replace(/\s+/g,'_'));
-      const { error } = await sb.from('resources').insert({ subject, title: file.name.replace(/\.[^.]+$/, ''), type: ext, url });
+      const { error } = await sb.from('resources').insert({ subject, title: file.name.replace(/\.[^.]+$/, ''), type: ext, url, uploaded_by: myName || 'Teacher' });
       if(error) throw error;
       statusEl.textContent = 'Uploaded ✓';
       await loadAll();

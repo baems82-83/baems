@@ -97,3 +97,10 @@ Leave both blank for faculty who are just listed on the site (no login). This st
 Run `supabase_migration_v6.sql` once (adds the linking columns to `faculty`).
 
 Note: removing a faculty member from the Faculty tab does **not** automatically revoke their teacher login (to avoid ever accidentally deleting the Admin's own access by mistake) — if you need to fully revoke someone's access, delete their row directly from the `staff_roles` table in Supabase's Table Editor.
+
+## Update: Resources are now a shared file manager (Admin + Teacher + Student)
+- Students can now **upload** files to their subjects at `/student.html` too (not just download). They still can't delete/replace others' files — only Admin/Teacher can remove files.
+- Every file now shows who uploaded it.
+- Run `supabase_migration_v7.sql` once.
+
+**Security note:** since students don't have real Supabase accounts, letting them upload means the underlying database technically accepts uploads from anyone who has the public site's code (not just logged-in students) — the login screen is what keeps casual visitors out, not a hard database rule. This mirrors the same tradeoff already accepted for the rest of this site. If it ever needs to be tightened, we'd need real student accounts (bigger change).
