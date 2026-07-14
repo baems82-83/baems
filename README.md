@@ -86,3 +86,14 @@ Netlify picks it up and redeploys automatically.
 ## Login "Invalid login credentials" fix
 If a newly created Admin/Teacher account can't log in with the right password, it's almost always unconfirmed email. Fix once for the whole project:
 Supabase → **Authentication → Sign In / Providers → Email** → turn **off** "Confirm email". Then recreate the user (or it'll work for existing ones on next login attempt, depending on Supabase's caching).
+
+## Update: Staff Accounts merged into Faculty
+The separate "Staff Accounts" tab is gone. Instead, each entry in `admin.html` → **Faculty** has an optional **"Teacher Portal Access"** box at the bottom:
+- **Supabase Auth User UUID** — paste this only if that person should log into `/teacher.html`.
+- **Subject** — controls which Resources tab they can upload to.
+
+Leave both blank for faculty who are just listed on the site (no login). This still requires creating the person's account once in Supabase → Authentication → Users → Add user (unavoidable — that's what a real login is) — but there's no more separate table/tab to duplicate their info into.
+
+Run `supabase_migration_v6.sql` once (adds the linking columns to `faculty`).
+
+Note: removing a faculty member from the Faculty tab does **not** automatically revoke their teacher login (to avoid ever accidentally deleting the Admin's own access by mistake) — if you need to fully revoke someone's access, delete their row directly from the `staff_roles` table in Supabase's Table Editor.
