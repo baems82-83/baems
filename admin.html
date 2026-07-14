@@ -558,7 +558,15 @@
       <div class="item" style="background:var(--paper-2); margin-top:14px;">
         <h3 style="font-size:14px; margin-bottom:10px;">Teacher Portal Access (optional)</h3>
         <p class="small-note" style="margin-top:-4px; margin-bottom:10px;">Fill this in only if this person should be able to log in at /teacher.html. Leave blank for faculty who are display-only.</p>
-        <label>Supabase Auth User UUID</label>
+
+        <div class="row2">
+          <div><label>Login Email</label><input type="text" id="newlogin_email_${i}" placeholder="e.g. name@baems.com"></div>
+          <div><label>Login Password</label><input type="text" id="newlogin_pass_${i}" placeholder="set a password"></div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="createTeacherLogin(${i})">Create Login &amp; Link</button>
+        <p class="small-note" id="newlogin_status_${i}"></p>
+
+        <label style="margin-top:14px;">Supabase Auth User UUID ${f.user_id ? '<span class="small-note">(linked ✓)</span>' : '<span class="small-note">(filled automatically above, or paste one you already have)</span>'}</label>
         <input type="text" placeholder="from Authentication → Users" value="${escapeAttr(f.user_id)}" oninput="data.faculty[${i}].user_id=this.value">
         <label>Subject (controls which Resources tab they can upload to)</label>
         <select onchange="data.faculty[${i}].teacher_subject=this.value">
@@ -570,6 +578,37 @@
     return div;
   }
   function addFaculty(){ data.faculty.push({name:'',role:'',initials:'',note:'',photo_url:'',qualification:'',user_id:'',teacher_subject:''}); renderFaculty(); }
+
+  async function createTeacherLogin(i){
+    const email = document.getElementById('newlogin_email_'+i).value.trim();
+    const password = document.getElementById('newlogin_pass_'+i).value;
+    const statusEl = document.getElementById('newlogin_status_'+i);
+    if(!email || !password){
+      statusEl.textContent = 'Enter an email and password first.';
+      return;
+    }
+    if(password.length < 6){
+      statusEl.textContent = 'Password must be at least 6 characters.';
+      return;
+    }
+    statusEl.textContent = 'Creating account…';
+    // Use a separate, throwaway client for this — signUp() would otherwise
+    // switch the CURRENT browser session to the new account, logging the
+    // admin out of their own session.
+    const tempClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: signUpData, error } = await tempClient.auth.signUp({ email, password });
+    if(error){
+      statusEl.textContent = 'Failed: ' + error.message;
+      return;
+    }
+    if(!signUpData.user){
+      statusEl.textContent = 'Account created, but no user id was returned — check Supabase Authentication → Users manually.';
+      return;
+    }
+    data.faculty[i].user_id = signUpData.user.id;
+    statusEl.textContent = 'Account created ✓ — UUID filled in below. Click "Save Faculty" to finish linking.';
+    renderFaculty();
+  }
   async function uploadFacultyPhoto(e, i){
     const file = e.target.files[0];
     if(!file) return;
