@@ -4,4 +4,4 @@ Disallow: /admin.html
 Disallow: /teacher.html
 Disallow: /student.html
 
-Sitemap: https://baems.netlify.app/sitemap.xml
+Sitemap: https://baems.onrender.com/sitemap.xml

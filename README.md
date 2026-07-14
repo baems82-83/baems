@@ -1,9 +1,9 @@
 # BAEMS STUDY — Bageshwari Academy E.M. School (+2 Science)
 
-Live site: https://baems.netlify.app
-Admin login (Admin only): https://baems.netlify.app/admin.html
-Teacher login (Teacher only): https://baems.netlify.app/teacher.html
-Student portal: https://baems.netlify.app/student.html
+Live site: https://baems.onrender.com
+Admin login (Admin only): https://baems.onrender.com/admin.html
+Teacher login (Teacher only): https://baems.onrender.com/teacher.html
+Student portal: https://baems.onrender.com/student.html
 
 Backend: **Supabase** (Postgres database + real authentication + file storage).
 
@@ -63,13 +63,13 @@ where schemaname = 'public' order by tablename;
 ```
 Every row should reference `is_admin()`, `is_staff()`, `true`, or `auth.uid() = user_id`. If any row shows the raw text `select 1 from staff_roles` directly, that one is the old broken version — re-run `supabase_fix_v2_policies.sql`.
 
-## 4. Push these files to GitHub / Netlify
+## 4. Push these files to GitHub (Render redeploys automatically)
 ```bash
 git add .
 git commit -m "Split Admin/Teacher portals, add gallery bulk upload, fix RLS recursion"
 git push
 ```
-Netlify picks it up and redeploys automatically.
+Render picks it up and redeploys automatically — usually live within a minute or two.
 
 ## New in this update
 - **Teachers now have a subject** (Physics, Chemistry, etc.) set in `admin.html` → Staff Accounts. Their `/teacher.html` Resources tab is locked to that subject only.
@@ -104,3 +104,9 @@ Note: removing a faculty member from the Faculty tab does **not** automatically 
 - Run `supabase_migration_v7.sql` once.
 
 **Security note:** since students don't have real Supabase accounts, letting them upload means the underlying database technically accepts uploads from anyone who has the public site's code (not just logged-in students) — the login screen is what keeps casual visitors out, not a hard database rule. This mirrors the same tradeoff already accepted for the rest of this site. If it ever needs to be tightened, we'd need real student accounts (bigger change).
+
+## Update: Moved from Netlify to Render
+Netlify's free tier ran out of monthly credits and stopped deploying. The site now runs on **Render** (Static Site) instead — same GitHub-connected auto-deploy workflow, no credit limit issue.
+- Live URL is now `https://baems.onrender.com` (all canonical/OG/sitemap links updated accordingly).
+- `netlify.toml` has been removed (no longer needed).
+- If Netlify credits ever reset and you want to keep it as a backup, you can reconnect it separately — it won't conflict with Render.
