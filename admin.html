@@ -394,7 +394,7 @@
   // ---------------- LOAD ALL ----------------
   async function loadAll(){
     try{
-      const [s, n, f, st, gl, rs, ap, sub] = await Promise.all([
+      const [s, n, f, st, gl, rs, ap, sub, tc] = await Promise.all([
         sb.from('settings').select('*').eq('id',1).single(),
         sb.from('notices').select('*').order('sort_order'),
         sb.from('faculty').select('*').order('sort_order'),
@@ -402,7 +402,8 @@
         sb.from('gallery').select('*').order('sort_order'),
         sb.from('resources').select('*').order('id'),
         sb.from('applications').select('*').order('created_at', { ascending: false }),
-        sb.from('subjects').select('*').order('sort_order')
+        sb.from('subjects').select('*').order('sort_order'),
+        sb.from('teachers').select('*')
       ]);
       if(s.error) throw s.error;
       data.settings = s.data || {};
@@ -412,6 +413,14 @@
       data.gallery = gl.data || [];
       data.applications = ap.data || [];
       data.subjects = sub.data || [];
+      // merge teacher login status into faculty rows (matched by username)
+      const teacherByUsername = {};
+      (tc.data || []).forEach(t => { teacherByUsername[t.username] = t; });
+      data.faculty.forEach(fac => {
+        const t = fac.teacher_username ? teacherByUsername[fac.teacher_username] : null;
+        fac.teacher_password_hash = t ? t.password_hash : null;
+        fac.teacher_has_password = !!(t && t.password_hash);
+      });
       data.resources = {};
       (rs.data || []).forEach(r => {
         if(!data.resources[r.subject]) data.resources[r.subject] = [];
@@ -557,57 +566,41 @@
 
       <div class="item" style="background:var(--paper-2); margin-top:14px;">
         <h3 style="font-size:14px; margin-bottom:10px;">Teacher Portal Access (optional)</h3>
-        <p class="small-note" style="margin-top:-4px; margin-bottom:10px;">Fill this in only if this person should be able to log in at /teacher.html. Leave blank for faculty who are display-only.</p>
+        <p class="small-note" style="margin-top:-4px; margin-bottom:10px;">Fill this in only if this person should be able to log in at /teacher.html. Leave blank for faculty who are display-only. Works exactly like Students — no Supabase dashboard needed.</p>
 
         <div class="row2">
-          <div><label>Login Email</label><input type="text" id="newlogin_email_${i}" placeholder="e.g. name@baems.com"></div>
-          <div><label>Login Password</label><input type="text" id="newlogin_pass_${i}" placeholder="set a password"></div>
+          <div><label>Login Username</label><input type="text" placeholder="e.g. narayan.physics" value="${escapeAttr(f.teacher_username)}" oninput="data.faculty[${i}].teacher_username=this.value"></div>
+          <div><label>Subject (which Resources tab they manage)</label>
+            <select onchange="data.faculty[${i}].teacher_subject=this.value">
+              <option value="">— none —</option>
+              ${SUBJECT_OPTIONS.map(sub => `<option value="${sub}" ${f.teacher_subject===sub?'selected':''}>${sub}</option>`).join('')}
+            </select>
+          </div>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="createTeacherLogin(${i})">Create Login &amp; Link</button>
-        <p class="small-note" id="newlogin_status_${i}"></p>
-
-        <label style="margin-top:14px;">Supabase Auth User UUID ${f.user_id ? '<span class="small-note">(linked ✓)</span>' : '<span class="small-note">(filled automatically above, or paste one you already have)</span>'}</label>
-        <input type="text" placeholder="from Authentication → Users" value="${escapeAttr(f.user_id)}" oninput="data.faculty[${i}].user_id=this.value">
-        <label>Subject (controls which Resources tab they can upload to)</label>
-        <select onchange="data.faculty[${i}].teacher_subject=this.value">
-          <option value="">— none —</option>
-          ${SUBJECT_OPTIONS.map(sub => `<option value="${sub}" ${f.teacher_subject===sub?'selected':''}>${sub}</option>`).join('')}
-        </select>
+        <label>Login Password ${f.teacher_has_password ? '<span class="small-note">(already set — leave blank to keep it)</span>' : ''}</label>
+        <input type="password" placeholder="Type to set/change password, then click elsewhere" onchange="stageTeacherPassword(${i},this.value)">
+        <div class="small-note" id="tpwstatus_${i}"></div>
       </div>
     `;
     return div;
   }
-  function addFaculty(){ data.faculty.push({name:'',role:'',initials:'',note:'',photo_url:'',qualification:'',user_id:'',teacher_subject:''}); renderFaculty(); }
+  function addFaculty(){ data.faculty.push({name:'',role:'',initials:'',note:'',photo_url:'',qualification:'',teacher_username:'',teacher_subject:'',teacher_password_hash:null,teacher_has_password:false}); renderFaculty(); }
 
-  async function createTeacherLogin(i){
-    const email = document.getElementById('newlogin_email_'+i).value.trim();
-    const password = document.getElementById('newlogin_pass_'+i).value;
-    const statusEl = document.getElementById('newlogin_status_'+i);
-    if(!email || !password){
-      statusEl.textContent = 'Enter an email and password first.';
-      return;
-    }
-    if(password.length < 6){
-      statusEl.textContent = 'Password must be at least 6 characters.';
-      return;
-    }
-    statusEl.textContent = 'Creating account…';
-    // Use a separate, throwaway client for this — signUp() would otherwise
-    // switch the CURRENT browser session to the new account, logging the
-    // admin out of their own session.
-    const tempClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data: signUpData, error } = await tempClient.auth.signUp({ email, password });
-    if(error){
-      statusEl.textContent = 'Failed: ' + error.message;
-      return;
-    }
-    if(!signUpData.user){
-      statusEl.textContent = 'Account created, but no user id was returned — check Supabase Authentication → Users manually.';
-      return;
-    }
-    data.faculty[i].user_id = signUpData.user.id;
-    statusEl.textContent = 'Account created ✓ — UUID filled in below. Click "Save Faculty" to finish linking.';
-    renderFaculty();
+  let pendingTeacherPasswordHashes = {};
+  async function stageTeacherPassword(i, val){
+    if(!val) return;
+    const statusEl = document.getElementById('tpwstatus_' + i);
+    if(statusEl) statusEl.textContent = 'Hashing password…';
+    const p = (async () => {
+      const { data: hash, error } = await sb.rpc('hash_password', { p_password: val });
+      if(error){ toast(error.message, false); if(statusEl) statusEl.textContent = ''; return; }
+      data.faculty[i].teacher_password_hash = hash;
+      data.faculty[i].teacher_has_password = true;
+      if(statusEl) statusEl.textContent = 'Password ready ✓ — click Save Faculty to store it.';
+    })();
+    pendingTeacherPasswordHashes[i] = p;
+    await p;
+    delete pendingTeacherPasswordHashes[i];
   }
   async function uploadFacultyPhoto(e, i){
     const file = e.target.files[0];
@@ -623,21 +616,25 @@
   }
   async function saveFaculty(){
     try{
+      await Promise.all(Object.values(pendingTeacherPasswordHashes));
       const del = await sb.from('faculty').delete().gte('id',0);
       if(del.error) throw del.error;
       if(data.faculty.length){
-        const payload = data.faculty.map((f,i)=>({name:f.name,role:f.role,initials:f.initials,note:f.note,photo_url:f.photo_url,qualification:f.qualification,user_id:f.user_id||null,teacher_subject:f.teacher_subject||null,sort_order:i}));
+        const payload = data.faculty.map((f,i)=>({name:f.name,role:f.role,initials:f.initials,note:f.note,photo_url:f.photo_url,qualification:f.qualification,teacher_username:f.teacher_username||null,teacher_subject:f.teacher_subject||null,sort_order:i}));
         const { error } = await sb.from('faculty').insert(payload);
         if(error) throw error;
       }
-      // Grant/update Teacher portal access for any faculty member with a UUID filled in
+      // Create/update the teacher login for any faculty member with a username set
       for(const f of data.faculty){
-        if(f.user_id && f.user_id.trim()){
-          const { error: roleErr } = await sb.from('staff_roles').upsert(
-            { user_id: f.user_id.trim(), role: 'teacher', name: f.name, subject: f.teacher_subject || null },
-            { onConflict: 'user_id' }
-          );
-          if(roleErr) toast(`Faculty saved, but couldn't grant teacher access for ${f.name}: ${roleErr.message}`, false);
+        if(f.teacher_username && f.teacher_username.trim()){
+          const payload = {
+            username: f.teacher_username.trim(),
+            name: f.name,
+            subject: f.teacher_subject || null,
+            password_hash: f.teacher_password_hash || null
+          };
+          const { error: tErr } = await sb.from('teachers').upsert(payload, { onConflict: 'username' });
+          if(tErr) toast(`Faculty saved, but couldn't set up login for ${f.name}: ${tErr.message}`, false);
         }
       }
       toast('Faculty saved.');

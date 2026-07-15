@@ -104,9 +104,9 @@
 
   <div class="card" id="loginCard" style="max-width:380px; margin:60px auto;">
     <h2>Teacher Log In</h2>
-    <p class="hint">Log in with the email + password your Admin created for you in Supabase.</p>
-    <label>Email</label>
-    <input type="text" id="loginEmail" autocomplete="username">
+    <p class="hint">Log in with the username + password your Admin set up for you (under Faculty in the admin panel).</p>
+    <label>Username</label>
+    <input type="text" id="loginUsername" autocomplete="username">
     <label>Password</label>
     <input type="password" id="loginPass" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
     <div class="actions">
@@ -194,10 +194,12 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWR1bW50a3B4YWZzd2hiZ3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NTU0OTgsImV4cCI6MjA5OTMzMTQ5OH0.savMSYTicFxTYbrzrxPeZGLuyNAnNN1ykJL1CpNBmTA';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const BUCKET = 'baems-files';
+  const SESSION_KEY = 'baems_teacher_session';
 
   let data = { gallery: [], resources: {}, students: [] };
   let myName = '';
   let mySubject = '';
+  let myUsername = '';
 
   function toast(msg, ok=true){
     const t = document.getElementById('toast');
@@ -216,40 +218,30 @@
   function escapeAttr(str){ return String(str||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
   async function doLogin(){
-    const email = document.getElementById('loginEmail').value.trim();
+    const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPass').value;
     const errEl = document.getElementById('loginError');
     errEl.style.display = 'none';
-    if(!email || !password){
-      errEl.textContent = 'Enter both email and password.';
+    if(!username || !password){
+      errEl.textContent = 'Enter both username and password.';
       errEl.style.display = 'block';
       return;
     }
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if(error){
-      errEl.textContent = error.message;
+    const { data: rows, error } = await sb.rpc('verify_teacher_login', { p_username: username, p_password: password });
+    if(error || !rows || !rows.length){
+      errEl.textContent = 'Username or password is incorrect.';
       errEl.style.display = 'block';
       return;
     }
-    await afterLogin();
+    const match = rows[0];
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(match));
+    await afterLogin(match);
   }
 
-  async function afterLogin(){
-    const { data: { user } } = await sb.auth.getUser();
-    if(!user) return;
-    const { data: roleRow, error } = await sb.from('staff_roles').select('role,name,subject').eq('user_id', user.id).maybeSingle();
-    if(error || !roleRow){
-      toast('Logged in, but no role is assigned yet. Ask an Admin to add your account under Staff Accounts.', false);
-      await sb.auth.signOut();
-      return;
-    }
-    if(roleRow.role !== 'teacher'){
-      toast('This is an Admin account — please log in at /admin.html instead.', false);
-      await sb.auth.signOut();
-      return;
-    }
-    myName = roleRow.name || '';
-    mySubject = roleRow.subject || '';
+  async function afterLogin(match){
+    myName = match.name || '';
+    mySubject = match.subject || '';
+    myUsername = match.username || '';
     const sel = document.getElementById('resourceSubjectSelect');
     if(mySubject){
       sel.innerHTML = `<option>${escapeHTML(mySubject)}</option>`;
@@ -257,7 +249,7 @@
     }else{
       const ALL_SUBJECTS = ['Physics','Chemistry','Biology','Mathematics','Computer Science','English','Nepali'];
       sel.innerHTML = ALL_SUBJECTS.map(s => `<option>${s}</option>`).join('');
-      document.getElementById('resourcesHint').textContent = 'No subject assigned to your account yet — ask an Admin to set one under Staff Accounts. Showing all subjects for now.';
+      document.getElementById('resourcesHint').textContent = 'No subject assigned to your account yet — ask an Admin to set one under Faculty. Showing all subjects for now.';
     }
     document.getElementById('loginCard').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'inline-block';
@@ -266,8 +258,8 @@
     await loadAll();
   }
 
-  async function logout(){
-    await sb.auth.signOut();
+  function logout(){
+    sessionStorage.removeItem(SESSION_KEY);
     document.getElementById('loginCard').style.display = 'block';
     document.getElementById('workArea').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'none';
@@ -276,8 +268,10 @@
   }
 
   window.addEventListener('DOMContentLoaded', async () => {
-    const { data: { session } } = await sb.auth.getSession();
-    if(session) await afterLogin();
+    const saved = sessionStorage.getItem(SESSION_KEY);
+    if(saved){
+      try{ await afterLogin(JSON.parse(saved)); }catch(e){ sessionStorage.removeItem(SESSION_KEY); }
+    }
   });
 
   async function uploadToStorage(file, folder){

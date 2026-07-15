@@ -110,3 +110,19 @@ Netlify's free tier ran out of monthly credits and stopped deploying. The site n
 - Live URL is now `https://baems.onrender.com` (all canonical/OG/sitemap links updated accordingly).
 - `netlify.toml` has been removed (no longer needed).
 - If Netlify credits ever reset and you want to keep it as a backup, you can reconnect it separately — it won't conflict with Render.
+
+## Update: Admin can create Teacher logins directly — no Supabase dashboard needed
+`admin.html` → **Faculty** tab → each faculty card's "Teacher Portal Access" box now has **Email + Password + "Create Login & Link"** button. Clicking it creates the real Supabase Auth account and links it automatically — no more visiting Supabase → Authentication → Users → copying UUIDs by hand.
+
+If it fails with something like "Signups not allowed": Supabase → **Authentication → Sign In / Providers → Email** → make sure **"Allow new users to sign up"** is turned on (separate from the "Confirm email" setting from earlier).
+
+## Update: Teacher login is now exactly as easy as Student login
+No more Supabase Auth accounts, UUIDs, email confirmation, or SMTP setup for teachers. `admin.html` → **Faculty** tab → each card's "Teacher Portal Access" box now just asks for **Username + Password + Subject** — the same simple pattern as Students. Click "Save Faculty" and that's it.
+
+Teachers log in at `/teacher.html` with that username + password.
+
+Run `supabase_migration_v8.sql` once. It:
+- Brings back a simple `teachers` table (username + hashed password) with its own secure login-check function, same pattern as students.
+- Opens Gallery photo uploads to any logged-in-looking visitor (same tradeoff already accepted for Resources) — deleting Gallery/Resources items stays Admin-only as a safety backstop.
+
+If you already created teacher accounts the old (Supabase Auth) way, they still work for now, but new teachers should be added the new simple way. The `staff_roles` / Supabase Auth path is no longer used by teacher.html.
