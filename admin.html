@@ -625,6 +625,7 @@
         if(error) throw error;
       }
       // Create/update the teacher login for any faculty member with a username set
+      const teacherErrors = [];
       for(const f of data.faculty){
         if(f.teacher_username && f.teacher_username.trim()){
           const payload = {
@@ -634,10 +635,17 @@
             password_hash: f.teacher_password_hash || null
           };
           const { error: tErr } = await sb.from('teachers').upsert(payload, { onConflict: 'username' });
-          if(tErr) toast(`Faculty saved, but couldn't set up login for ${f.name}: ${tErr.message}`, false);
+          if(tErr){
+            console.error('Teacher login setup failed for', f.name, tErr);
+            teacherErrors.push(`${f.name}: ${tErr.message}`);
+          }
         }
       }
-      toast('Faculty saved.');
+      if(teacherErrors.length){
+        toast('Faculty saved, but teacher login setup failed — ' + teacherErrors.join(' | '), false);
+      }else{
+        toast('Faculty saved.');
+      }
       loadAll();
     }catch(e){ toast(e.message, false); }
   }
