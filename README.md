@@ -155,3 +155,21 @@ Same GitHub → Render auto-deploy flow as before.
 
 ## Note on scope
 This is a big, layered update built in one pass. If anything looks or behaves slightly off after deploying, tell me exactly what you see (a screenshot helps) and I'll fix that specific piece — better to patch precisely than redo broadly.
+
+---
+
+# 🎙️ Update — Voice Clips + Delete Your Own Message
+
+## What's new
+- **Voice clips**: on the Discussion Board (Admin, Teacher, and Student portals), click **🎤 Record** next to any post or reply box to record a short voice message right in the browser. Click again to stop — it uploads to Cloudinary and plays back inline as an audio player. You can still type text instead, or both together.
+- **Delete your own message**: Students and Teachers now see a **✕** button on messages they posted themselves, letting them remove their own posts. This works without needing a real login account — each browser gets a private random ID (stored only on that device) the first time it's used, and only messages matching that exact ID can be deleted by that button. Admin can still delete anything, from anyone.
+
+## Run this once
+```
+supabase_migration_v10.sql
+```
+Adds the `audio_url` / `author_token` columns and the secure delete function. Safe to re-run.
+
+## A couple of practical notes
+- Voice recording needs microphone permission — the browser will prompt for it the first time.
+- "Delete your own message" is tied to the browser/device you posted from, not to a login session — if you post from your phone and later try to delete from a laptop, the ✕ button won't appear there for that message (it's not the same private ID). This is a reasonable trade-off given there's no full account system for students/teachers.

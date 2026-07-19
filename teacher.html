@@ -276,8 +276,12 @@
         <p class="hint">Answer student questions for your subject, or post announcements.</p>
         <label>Subject</label>
         <select id="discussionSubjectSelect" onchange="loadDiscussions()"></select>
-        <textarea id="discussionNewMsg" placeholder="Post a message or question…" style="margin-top:12px;"></textarea>
-        <div class="actions"><button class="btn btn-primary" onclick="postDiscussion(null)">Post</button></div>
+        <textarea id="discussionNewMsg" placeholder="Post a message or question… (optional if attaching voice)" style="margin-top:12px;"></textarea>
+        <div class="actions">
+          <button class="btn btn-outline btn-sm" id="voicebtn-new" onclick="toggleVoice('new')">🎤 Record</button>
+          <span class="small-note" id="voicelabel-new" style="margin-top:0;"></span>
+          <button class="btn btn-primary" onclick="postDiscussion(null)" style="margin-left:auto;">Post</button>
+        </div>
         <div id="discussionList" style="margin-top:18px;"></div>
       </div>
     </div>
@@ -648,30 +652,48 @@
     if(!top.length){ list.innerHTML = '<p class="small-note">No posts yet for this subject.</p>'; return; }
     list.innerHTML = top.map(t => threadHTML(t, repliesOf(t.id))).join('');
   }
+  function getMyToken(){
+    let t = localStorage.getItem('baems_voice_token');
+    if(!t){ t = 'tok_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('baems_voice_token', t); }
+    return t;
+  }
+
   function threadHTML(t, replies){
+    const mine = t.author_token && t.author_token === getMyToken();
     return `
       <div class="thread">
         <div class="thread-head">
           <span class="thread-author">${escapeHTML(t.author_name)}<span class="role-badge ${t.author_role}">${t.author_role}</span></span>
           <span class="thread-time">${new Date(t.created_at).toLocaleString()}</span>
         </div>
-        <div class="thread-msg">${escapeHTML(t.message)}</div>
+        ${t.message ? `<div class="thread-msg">${escapeHTML(t.message)}</div>` : ''}
+        ${t.audio_url ? `<audio controls src="${t.audio_url}" style="width:100%; margin:6px 0;"></audio>` : ''}
         <div class="actions">
           <button class="btn btn-sm btn-outline" onclick="toggleReplyBox(${t.id})">Reply</button>
+          ${mine ? `<button class="icon-btn" title="Delete your message" onclick="deleteOwnDiscussion(${t.id})">✕</button>` : ''}
         </div>
         <div id="replybox-${t.id}" style="display:none; margin-top:10px;">
-          <textarea id="replytext-${t.id}" placeholder="Write a reply…"></textarea>
-          <div class="actions"><button class="btn btn-primary btn-sm" onclick="postDiscussion(${t.id})">Post Reply</button></div>
+          <textarea id="replytext-${t.id}" placeholder="Write a reply… (optional if attaching voice)"></textarea>
+          <div class="actions">
+            <button class="btn btn-outline btn-sm" id="voicebtn-reply-${t.id}" onclick="toggleVoice('reply-${t.id}')">🎤 Record</button>
+            <span class="small-note" id="voicelabel-reply-${t.id}" style="margin-top:0;"></span>
+            <button class="btn btn-primary btn-sm" onclick="postDiscussion(${t.id})" style="margin-left:auto;">Post Reply</button>
+          </div>
         </div>
         <div class="thread-replies">
-          ${replies.map(r => `
+          ${replies.map(r => {
+            const rMine = r.author_token && r.author_token === getMyToken();
+            return `
             <div style="margin-bottom:10px;">
               <div class="thread-head">
                 <span class="thread-author">${escapeHTML(r.author_name)}<span class="role-badge ${r.author_role}">${r.author_role}</span></span>
                 <span class="thread-time">${new Date(r.created_at).toLocaleString()}</span>
               </div>
-              <div class="thread-msg">${escapeHTML(r.message)}</div>
-            </div>`).join('')}
+              ${r.message ? `<div class="thread-msg">${escapeHTML(r.message)}</div>` : ''}
+              ${r.audio_url ? `<audio controls src="${r.audio_url}" style="width:100%; margin:6px 0;"></audio>` : ''}
+              ${rMine ? `<button class="icon-btn" title="Delete your message" onclick="deleteOwnDiscussion(${r.id})">✕</button>` : ''}
+            </div>`;
+          }).join('')}
         </div>
       </div>`;
   }
@@ -679,16 +701,77 @@
     const box = document.getElementById('replybox-' + id);
     box.style.display = box.style.display === 'none' ? 'block' : 'none';
   }
+
+  let voiceState = {};
+  async function toggleVoice(key){
+    const btn = document.getElementById('voicebtn-' + key);
+    const label = document.getElementById('voicelabel-' + key);
+    if(voiceState[key] && voiceState[key].recording){
+      voiceState[key].recorder.stop();
+      return;
+    }
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        voiceState[key] = { blob };
+        stream.getTracks().forEach(tr => tr.stop());
+        if(btn) btn.textContent = '🎤 Record';
+        if(label) label.innerHTML = '🎙️ Voice clip attached <a href="#" onclick="clearVoice(\'' + key + '\'); return false;" style="margin-left:6px;">remove</a>';
+      };
+      recorder.start();
+      voiceState[key] = { recorder, recording: true };
+      if(btn) btn.textContent = '⏹ Stop';
+      if(label) label.textContent = '🔴 Recording…';
+    }catch(err){
+      toast('Microphone access denied or unavailable.', false);
+    }
+  }
+  function clearVoice(key){
+    delete voiceState[key];
+    const label = document.getElementById('voicelabel-' + key);
+    if(label) label.textContent = '';
+  }
+  async function uploadVoiceIfAny(key){
+    const v = voiceState[key];
+    if(!v || !v.blob) return null;
+    const fd = new FormData();
+    fd.append('file', v.blob, 'voice.webm');
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    fd.append('folder', 'baems/voice');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`, { method:'POST', body: fd });
+    const json = await res.json();
+    if(!json.secure_url) throw new Error(json.error?.message || 'Voice upload failed');
+    delete voiceState[key];
+    return json.secure_url;
+  }
+
   async function postDiscussion(parentId){
     const subject = document.getElementById('discussionSubjectSelect').value;
+    const key = parentId ? ('reply-' + parentId) : 'new';
     const textEl = parentId ? document.getElementById('replytext-' + parentId) : document.getElementById('discussionNewMsg');
     const message = textEl.value.trim();
-    if(!message) return;
+    let audio_url = null;
+    try{ audio_url = await uploadVoiceIfAny(key); }
+    catch(err){ toast(err.message, false); return; }
+    if(!message && !audio_url) return;
     const { error } = await sb.from('discussions').insert({
-      subject, parent_id: parentId, author_name: myName || 'Teacher', author_role: 'teacher', message
+      subject, parent_id: parentId, author_name: myName || 'Teacher', author_role: 'teacher',
+      message: message || null, audio_url, author_token: getMyToken()
     });
     if(error){ toast(error.message, false); return; }
     textEl.value = '';
+    const lbl = document.getElementById('voicelabel-' + key);
+    if(lbl) lbl.textContent = '';
+    loadDiscussions();
+  }
+  async function deleteOwnDiscussion(id){
+    if(!confirm('Delete this message?')) return;
+    const { data: ok, error } = await sb.rpc('delete_own_discussion', { p_id: id, p_token: getMyToken() });
+    if(error || !ok){ toast('Could not delete — it may not be your message.', false); return; }
     loadDiscussions();
   }
 
