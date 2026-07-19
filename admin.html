@@ -10,15 +10,55 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#182352; --paper:#faf3da; --paper-2:#f1e3ac;
-    --lab:#22306e; --lab-light:#354793; --amber:#c1451f; --slate:#1f9fc4;
-    --line: rgba(24,35,82,0.18); --white:#fffdf6;
+    --ink:#182352; --paper:#f7f4ec; --paper-2:#f1e3ac;
+    --lab:#22306e; --lab-light:#354793; --amber:#c1451f; --amber-light:#e2703f; --slate:#1f9fc4;
+    --line: rgba(24,35,82,0.13); --white:#ffffff;
     --danger:#b7291f; --ok:#1d7a4c;
+    --sidebar-w: 240px;
+    --shadow-sm: 0 1px 2px rgba(24,35,82,0.06), 0 1px 3px rgba(24,35,82,0.08);
+    --shadow-md: 0 4px 10px rgba(24,35,82,0.08), 0 2px 4px rgba(24,35,82,0.06);
+    --shadow-lg: 0 12px 28px rgba(24,35,82,0.14), 0 4px 10px rgba(24,35,82,0.08);
+    --radius: 12px;
   }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans',sans-serif;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans',sans-serif; -webkit-font-smoothing:antialiased;}
   h1,h2,h3{font-family:'Fraunces',serif; font-weight:700; margin:0;}
   .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:var(--slate);}
+
+  .app-shell{display:flex; min-height:100vh;}
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0; background:linear-gradient(180deg, var(--ink), #101a42);
+    color:var(--white); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; z-index:20;
+  }
+  .sidebar-brand{display:flex; align-items:center; gap:12px; padding:22px 20px; border-bottom:1px solid rgba(255,255,255,0.1);}
+  .sidebar-brand img{width:38px; height:38px; border-radius:50%; background:var(--white); padding:2px; flex-shrink:0;}
+  .sidebar-brand .name{font-family:'Fraunces',serif; font-weight:700; font-size:16px; line-height:1.2;}
+  .sidebar-brand .sub{font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:#a9b3e0;}
+  .sidebar nav{flex:1; padding:14px 12px; overflow-y:auto;}
+  .side-link{
+    display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+    padding:11px 14px; border-radius:9px; border:none; background:transparent; color:#cfd6f2;
+    font-family:'IBM Plex Sans',sans-serif; font-size:14px; font-weight:500; cursor:pointer;
+    margin-bottom:3px; transition:background 0.15s, color 0.15s;
+  }
+  .side-link .ic{font-size:16px; width:20px; text-align:center; flex-shrink:0;}
+  .side-link:hover{background:rgba(255,255,255,0.08); color:#fff;}
+  .side-link.active{background:var(--amber); color:#fff; font-weight:600; box-shadow:var(--shadow-sm);}
+  .sidebar-foot{padding:16px 20px; border-top:1px solid rgba(255,255,255,0.1);}
+
+  .main-col{flex:1; min-width:0;}
+  .topbar{
+    position:sticky; top:0; z-index:10; background:rgba(247,244,236,0.9); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); padding:16px 28px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  }
+  .topbar h1{font-size:20px;}
+  .status{font-size:11.5px; font-family:'IBM Plex Mono',monospace; padding:6px 12px; border-radius:20px; font-weight:500;}
+  .status.on{background:#1d7a4c1a; color:#1d7a4c;}
+  .status.off{background:#b7291f1a; color:#b7291f;}
+  main{max-width:1080px; width:100%; margin:0 auto; padding:28px 28px 90px;}
+
   header{
     background:var(--ink); color:var(--white); padding:18px 24px;
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
@@ -26,31 +66,32 @@
   header .title{display:flex; align-items:center; gap:12px;}
   header img{width:36px; height:36px; border-radius:50%; background:var(--white); padding:2px;}
   header h1{font-size:19px; color:var(--white);}
-  header .status{font-size:12px; font-family:'IBM Plex Mono',monospace; padding:5px 10px; border-radius:3px;}
-  .status.on{background:#1d7a4c33; color:#8ee6b4;}
-  .status.off{background:#b7291f33; color:#ffb3ac;}
-  main{max-width:960px; margin:0 auto; padding:28px 20px 80px;}
-  .card{background:var(--white); border:1px solid var(--line); border-radius:6px; padding:24px; margin-bottom:22px;}
+
+  .card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:26px; margin-bottom:22px; box-shadow:var(--shadow-sm); transition:box-shadow 0.2s;}
   .card h2{font-size:20px; margin-bottom:6px;}
-  .card .hint{font-size:13px; color:#565f6b; margin:0 0 18px; line-height:1.5;}
-  label{font-size:12px; text-transform:uppercase; letter-spacing:0.04em; color:#4a524d; display:block; margin:14px 0 5px;}
+  .card .hint{font-size:13px; color:#5b6376; margin:0 0 18px; line-height:1.55;}
+  label{font-size:11.5px; text-transform:uppercase; letter-spacing:0.05em; color:#5b6376; font-weight:600; display:block; margin:14px 0 6px;}
   label:first-child{margin-top:0;}
   input[type=text], input[type=password], textarea, select{
-    width:100%; padding:10px 12px; border:1px solid var(--ink); border-radius:3px;
+    width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:8px;
     font-family:'IBM Plex Sans',sans-serif; font-size:14px; background:var(--white); color:var(--ink);
+    transition:border-color 0.15s, box-shadow 0.15s;
   }
+  input:focus, textarea:focus, select:focus{outline:none; border-color:var(--lab); box-shadow:0 0 0 3px rgba(34,48,110,0.12);}
   textarea{resize:vertical; min-height:70px;}
   .row2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   .btn{
-    display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:3px;
+    display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:9px;
     font-weight:600; font-size:14px; border:1.5px solid var(--ink); cursor:pointer; background:transparent; color:var(--ink);
+    transition:transform 0.1s, box-shadow 0.15s, background 0.15s;
   }
-  .btn-primary{background:var(--amber); border-color:var(--amber); color:#221605;}
-  .btn-primary:hover{background:#a83a19;}
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--amber); border-color:var(--amber); color:#fff; box-shadow:var(--shadow-sm);}
+  .btn-primary:hover{background:var(--amber-light); box-shadow:var(--shadow-md);}
   .btn-outline:hover{background:var(--ink); color:var(--paper);}
   .btn-danger{border-color:var(--danger); color:var(--danger);}
   .btn-danger:hover{background:var(--danger); color:var(--white);}
-  .btn-sm{padding:6px 12px; font-size:12.5px;}
+  .btn-sm{padding:7px 13px; font-size:12.5px; border-radius:7px;}
   .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
   .tabs{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;}
   .tab{
@@ -58,53 +99,76 @@
     font-weight:600; font-size:13.5px; cursor:pointer; color:var(--ink);
   }
   .tab.active{background:var(--ink); color:var(--paper);}
-  .panel{display:none;}
+  .panel{display:none; animation:fadein 0.25s ease;}
   .panel.active{display:block;}
+  @keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
   .item{
-    border:1px solid var(--line); border-radius:5px; padding:16px; margin-bottom:14px; position:relative; background:#fffef9;
+    border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:14px; position:relative; background:#fdfcf9;
+    transition:border-color 0.15s;
   }
+  .item:hover{border-color:rgba(24,35,82,0.25);}
   .item-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;}
   .item-top .idx{font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8a8060;}
   .item-controls{display:flex; gap:6px;}
   .icon-btn{
-    border:1px solid var(--line); background:var(--white); border-radius:3px; cursor:pointer;
-    width:28px; height:28px; font-size:13px; line-height:1;
+    border:1px solid var(--line); background:var(--white); border-radius:6px; cursor:pointer;
+    width:28px; height:28px; font-size:13px; line-height:1; transition:background 0.15s;
   }
   .icon-btn:hover{background:var(--paper-2);}
   .logo-preview{display:flex; align-items:center; gap:16px; margin-top:6px;}
-  .logo-preview img{width:64px; height:64px; object-fit:contain; border:1px solid var(--line); border-radius:6px; background:var(--white); padding:4px;}
+  .logo-preview img{width:64px; height:64px; object-fit:contain; border:1px solid var(--line); border-radius:10px; background:var(--white); padding:4px;}
   .toast{
-    position:fixed; bottom:24px; right:24px; padding:13px 18px; border-radius:5px; font-size:13.5px;
-    max-width:340px; box-shadow:0 6px 16px rgba(0,0,0,0.2); display:none; z-index:99;
+    position:fixed; bottom:24px; right:24px; padding:14px 20px; border-radius:10px; font-size:13.5px;
+    max-width:360px; box-shadow:var(--shadow-lg); display:none; z-index:99;
   }
   .toast.ok{background:var(--ok); color:#fff;}
   .toast.err{background:var(--danger); color:#fff;}
   .setup-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   .small-note{font-size:12px; color:#7a7360; margin-top:6px;}
-  a{color:var(--slate);}
   .spinner{display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
-  @media(max-width:640px){ .row2, .setup-grid{grid-template-columns:1fr;} }
+
+  /* Discussion board */
+  .thread{border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:14px; background:var(--white);}
+  .thread-head{display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;}
+  .thread-author{font-weight:700; font-size:13.5px;}
+  .role-badge{font-size:10px; text-transform:uppercase; letter-spacing:0.04em; padding:2px 8px; border-radius:10px; margin-left:8px; font-family:'IBM Plex Mono',monospace;}
+  .role-badge.teacher{background:#1f9fc41a; color:var(--slate);}
+  .role-badge.admin{background:#c1451f1a; color:var(--amber);}
+  .role-badge.student{background:#22306e1a; color:var(--lab);}
+  .thread-time{font-size:11px; color:#8a8a8a;}
+  .thread-msg{font-size:14px; line-height:1.5; margin:6px 0 10px;}
+  .thread-replies{margin-left:20px; padding-left:14px; border-left:2px solid var(--line);}
+  .avail-dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;}
+  .avail-dot.on{background:var(--ok);}
+  .avail-dot.off{background:#c7c2b3;}
+  .toggle-row{display:flex; align-items:center; gap:10px; padding:10px 0;}
+  .switch{position:relative; width:44px; height:24px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .slider{position:absolute; inset:0; background:#d8d3c4; border-radius:24px; cursor:pointer; transition:0.2s;}
+  .slider:before{content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:0.2s; box-shadow:var(--shadow-sm);}
+  input:checked + .slider{background:var(--ok);}
+  input:checked + .slider:before{transform:translateX(20px);}
+
+  @media(max-width:900px){
+    .app-shell{flex-direction:column;}
+    .sidebar{width:100%; height:auto; position:relative; flex-direction:row; align-items:center; overflow-x:auto;}
+    .sidebar-brand{border-bottom:none; border-right:1px solid rgba(255,255,255,0.1); flex-shrink:0;}
+    .sidebar nav{display:flex; padding:8px; overflow-x:auto;}
+    .side-link{white-space:nowrap; margin-bottom:0; margin-right:4px;}
+    .sidebar-foot{display:none;}
+  }
+  @media(max-width:640px){ .row2, .setup-grid{grid-template-columns:1fr;} main{padding:20px 16px 80px;} }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="title">
-    <img src="assets/logo.png" alt="logo" onerror="this.style.display='none'">
-    <h1>BAEMS STUDY — Admin</h1>
-  </div>
-  <div style="display:flex; align-items:center; gap:10px;">
-    <span class="status off mono" id="connStatus">Not connected</span>
-    <button class="btn btn-outline btn-sm" id="logoutBtn" onclick="logout()" style="display:none;">Log out</button>
-  </div>
-</header>
-
-<main>
-
-  <div class="card" id="loginCard" style="max-width:380px; margin:60px auto;">
-    <h2>Staff Log In</h2>
-
+<div id="loginScreen" style="min-height:100vh; display:flex; align-items:center; justify-content:center;">
+  <div class="card" id="loginCard" style="max-width:380px; width:100%;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+      <img src="assets/logo.png" alt="logo" style="width:40px;height:40px;border-radius:50%;" onerror="this.style.display='none'">
+      <div><h2 style="font-size:18px;">BAEMS STUDY</h2><div class="small-note" style="margin-top:0;">Staff Dashboard</div></div>
+    </div>
     <label>Email</label>
     <input type="text" id="loginEmail" autocomplete="username">
     <label>Password</label>
@@ -114,19 +178,39 @@
     </div>
     <p class="small-note" id="loginError" style="color:var(--danger); display:none;"></p>
   </div>
+</div>
 
-  <div id="workArea" style="display:none;">
-    <div class="tabs">
-      <button class="tab active" data-tab="settings" data-role="admin" onclick="showTab('settings')">Site Settings</button>
-      <button class="tab" data-tab="notices" data-role="admin" onclick="showTab('notices')">Notices</button>
-      <button class="tab" data-tab="faculty" data-role="admin" onclick="showTab('faculty')">Faculty</button>
-      <button class="tab" data-tab="subjects" data-role="admin" onclick="showTab('subjects')">Subjects</button>
-      <button class="tab" data-tab="students" data-role="admin" onclick="showTab('students')">Students</button>
-      <button class="tab" data-tab="applications" data-role="admin" onclick="showTab('applications')">Applications</button>
-      <button class="tab" data-tab="gallery" data-role="any" onclick="showTab('gallery')">Gallery</button>
-      <button class="tab" data-tab="resources" data-role="any" onclick="showTab('resources')">Resources</button>
-      <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="loadAll()">↻ Reload</button>
+<div class="app-shell" id="workArea" style="display:none;">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="assets/logo.png" alt="logo" onerror="this.style.display='none'">
+      <div><div class="name">BAEMS STUDY</div><div class="sub">Admin</div></div>
     </div>
+    <nav>
+      <button class="side-link tab active" data-tab="settings" data-role="admin" onclick="showTab('settings')"><span class="ic">⚙</span>Site Settings</button>
+      <button class="side-link tab" data-tab="notices" data-role="admin" onclick="showTab('notices')"><span class="ic">📌</span>Notices</button>
+      <button class="side-link tab" data-tab="faculty" data-role="admin" onclick="showTab('faculty')"><span class="ic">🎓</span>Faculty</button>
+      <button class="side-link tab" data-tab="subjects" data-role="admin" onclick="showTab('subjects')"><span class="ic">📚</span>Subjects</button>
+      <button class="side-link tab" data-tab="students" data-role="admin" onclick="showTab('students')"><span class="ic">🧑‍🎓</span>Students</button>
+      <button class="side-link tab" data-tab="applications" data-role="admin" onclick="showTab('applications')"><span class="ic">📥</span>Applications</button>
+      <button class="side-link tab" data-tab="gallery" data-role="any" onclick="showTab('gallery')"><span class="ic">🖼</span>Gallery</button>
+      <button class="side-link tab" data-tab="resources" data-role="any" onclick="showTab('resources')"><span class="ic">📁</span>Resources</button>
+      <button class="side-link tab" data-tab="discussion" data-role="any" onclick="showTab('discussion')"><span class="ic">💬</span>Discussion Board</button>
+    </nav>
+    <div class="sidebar-foot">
+      <button class="btn btn-outline btn-sm" style="width:100%; justify-content:center; color:#fff; border-color:rgba(255,255,255,0.3);" onclick="logout()">Log out</button>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <div class="topbar">
+      <h1 id="topbarTitle">Site Settings</h1>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="status off mono" id="connStatus">Not connected</span>
+        <button class="btn btn-outline btn-sm" onclick="loadAll()">↻ Reload</button>
+      </div>
+    </div>
+    <main>
 
     <!-- SETTINGS -->
     <div class="panel active" id="panel-settings">
@@ -281,9 +365,25 @@
         <p class="small-note" id="resourceUploadStatus"></p>
       </div>
     </div>
-  </div>
 
-</main>
+    <!-- DISCUSSION BOARD -->
+    <div class="panel" id="panel-discussion">
+      <div class="card">
+        <h2>Discussion Board</h2>
+        <p class="hint">Students, teachers and admin can post questions and answers per subject. Admin can remove any post.</p>
+        <label>Subject</label>
+        <select id="discussionSubjectSelect" onchange="loadDiscussions()">
+          <option>Physics</option><option>Chemistry</option><option>Biology</option>
+          <option>Mathematics</option><option>Computer Science</option><option>English</option><option>Nepali</option>
+        </select>
+        <textarea id="discussionNewMsg" placeholder="Post a message or question to this subject's board…" style="margin-top:12px;"></textarea>
+        <div class="actions"><button class="btn btn-primary" onclick="postDiscussion(null)">Post</button></div>
+        <div id="discussionList" style="margin-top:18px;"></div>
+      </div>
+    </div>
+    </main>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -293,6 +393,8 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWR1bW50a3B4YWZzd2hiZ3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NTU0OTgsImV4cCI6MjA5OTMzMTQ5OH0.savMSYTicFxTYbrzrxPeZGLuyNAnNN1ykJL1CpNBmTA';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const BUCKET = 'baems-files';
+  const CLOUDINARY_CLOUD = 'tvp2hzjn';
+  const CLOUDINARY_PRESET = 'ml_default';
 
   let currentRole = 'admin';
   let data = {
@@ -353,11 +455,10 @@
       return;
     }
     currentRole = roleRow.role;
-    document.getElementById('loginCard').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'inline-block';
+    document.getElementById('loginScreen').style.display = 'none';
     applyRoleVisibility(currentRole);
     setConnStatus(true);
-    document.getElementById('workArea').style.display = 'block';
+    document.getElementById('workArea').style.display = 'flex';
     await loadAll();
   }
 
@@ -370,9 +471,8 @@
 
   async function logout(){
     await sb.auth.signOut();
-    document.getElementById('loginCard').style.display = 'block';
+    document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('workArea').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'none';
     document.getElementById('loginPass').value = '';
     setConnStatus(false);
   }
@@ -382,13 +482,18 @@
     if(session) await afterLogin();
   });
 
-  // ---------------- STORAGE UPLOAD HELPER ----------------
+  // ---------------- CLOUDINARY UPLOAD HELPER ----------------
   async function uploadToStorage(file, folder){
-    const path = folder + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
-    if(error) throw error;
-    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
-    return pub.publicUrl;
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    fd.append('folder', 'baems/' + folder);
+    const isImage = file.type && file.type.startsWith('image/');
+    const resourceType = isImage ? 'image' : 'auto';
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`, { method:'POST', body: fd });
+    const json = await res.json();
+    if(!json.secure_url) throw new Error(json.error?.message || 'Upload failed');
+    return json.secure_url;
   }
 
   // ---------------- LOAD ALL ----------------
@@ -947,10 +1052,78 @@
     RENDERERS[coll]();
   }
 
+  const TAB_TITLES = { settings:'Site Settings', notices:'Notices', faculty:'Faculty', subjects:'Subjects', students:'Students', applications:'Applications', gallery:'Gallery', resources:'Resources', discussion:'Discussion Board' };
+  // ---------------- DISCUSSION BOARD ----------------
+  async function loadDiscussions(){
+    const subject = document.getElementById('discussionSubjectSelect').value;
+    const list = document.getElementById('discussionList');
+    list.innerHTML = '<p class="small-note">Loading…</p>';
+    const { data: rows, error } = await sb.from('discussions').select('*').eq('subject', subject).order('created_at');
+    if(error){ list.innerHTML = '<p class="small-note">Could not load discussion.</p>'; return; }
+    const top = (rows||[]).filter(r => !r.parent_id);
+    const repliesOf = id => (rows||[]).filter(r => r.parent_id === id);
+    if(!top.length){ list.innerHTML = '<p class="small-note">No posts yet for this subject.</p>'; return; }
+    list.innerHTML = top.map(t => threadHTML(t, repliesOf(t.id))).join('');
+  }
+  function threadHTML(t, replies){
+    return `
+      <div class="thread">
+        <div class="thread-head">
+          <span class="thread-author">${escapeHTML(t.author_name)}<span class="role-badge ${t.author_role}">${t.author_role}</span></span>
+          <span class="thread-time">${new Date(t.created_at).toLocaleString()}</span>
+        </div>
+        <div class="thread-msg">${escapeHTML(t.message)}</div>
+        <div class="actions">
+          <button class="btn btn-sm btn-outline" onclick="toggleReplyBox(${t.id})">Reply</button>
+          <button class="icon-btn" onclick="deleteDiscussion(${t.id})">✕</button>
+        </div>
+        <div id="replybox-${t.id}" style="display:none; margin-top:10px;">
+          <textarea id="replytext-${t.id}" placeholder="Write a reply…"></textarea>
+          <div class="actions"><button class="btn btn-primary btn-sm" onclick="postDiscussion(${t.id})">Post Reply</button></div>
+        </div>
+        <div class="thread-replies">
+          ${replies.map(r => `
+            <div style="margin-bottom:10px;">
+              <div class="thread-head">
+                <span class="thread-author">${escapeHTML(r.author_name)}<span class="role-badge ${r.author_role}">${r.author_role}</span></span>
+                <span class="thread-time">${new Date(r.created_at).toLocaleString()}</span>
+              </div>
+              <div class="thread-msg">${escapeHTML(r.message)}</div>
+              <button class="icon-btn" onclick="deleteDiscussion(${r.id})">✕</button>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+  function toggleReplyBox(id){
+    const box = document.getElementById('replybox-' + id);
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  }
+  async function postDiscussion(parentId){
+    const subject = document.getElementById('discussionSubjectSelect').value;
+    const textEl = parentId ? document.getElementById('replytext-' + parentId) : document.getElementById('discussionNewMsg');
+    const message = textEl.value.trim();
+    if(!message) return;
+    const { error } = await sb.from('discussions').insert({
+      subject, parent_id: parentId, author_name: 'Admin', author_role: 'admin', message
+    });
+    if(error){ toast(error.message, false); return; }
+    textEl.value = '';
+    loadDiscussions();
+  }
+  async function deleteDiscussion(id){
+    if(!confirm('Delete this post?')) return;
+    const { error } = await sb.from('discussions').delete().eq('id', id);
+    if(error){ toast(error.message, false); return; }
+    loadDiscussions();
+  }
+
   function showTab(name){
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+    const titleEl = document.getElementById('topbarTitle');
+    if(titleEl) titleEl.textContent = TAB_TITLES[name] || name;
     if(name === 'resources') renderResourceFiles();
+    if(name === 'discussion') loadDiscussions();
   }
 </script>
 

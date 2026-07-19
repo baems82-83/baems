@@ -126,3 +126,32 @@ Run `supabase_migration_v8.sql` once. It:
 - Opens Gallery photo uploads to any logged-in-looking visitor (same tradeoff already accepted for Resources) — deleting Gallery/Resources items stays Admin-only as a safety backstop.
 
 If you already created teacher accounts the old (Supabase Auth) way, they still work for now, but new teachers should be added the new simple way. The `staff_roles` / Supabase Auth path is no longer used by teacher.html.
+
+---
+
+# 🚀 Major Update — Sidebar Dashboards, Discussion Board, Teacher Availability, Cloudinary Storage
+
+## What changed
+
+**1. Modern sidebar dashboard UI** — `admin.html` and `teacher.html` now use a fixed left sidebar (like a real SaaS dashboard) instead of a horizontal tab bar. `student.html` also got the same sidebar treatment. Cards, buttons, and inputs have new shadows, rounded corners, and smoother transitions across all three portals and the public site.
+
+**2. Discussion Board (student ⇄ teacher ⇄ admin)** — a new tab in all three portals. Students ask questions per subject; teachers and admin can answer or post announcements; replies thread under the original post. Admin can delete any post (moderation).
+
+**3. Teacher Availability** — teachers have an **Available / Unavailable** toggle plus an optional status note (e.g. "Available until 5 PM") in `teacher.html`. Students see this live at the top of that subject's Discussion Board.
+
+**4. Storage moved to Cloudinary** — all file uploads (logo, faculty photos, gallery photos, resource files) now go to Cloudinary instead of Supabase Storage. Same cloud name/preset already configured (`tvp2hzjn` / `ml_default`) — no extra setup needed. Supabase is still used for all the actual data (accounts, records, text content) — only file storage moved.
+
+## Run this once
+```
+supabase_migration_v9.sql
+```
+This adds `is_available` / `status_note` to `teachers`, and creates the `discussions` table with its security rules. Safe to re-run.
+
+## Push these files
+```
+index.html, admin.html, teacher.html, student.html
+```
+Same GitHub → Render auto-deploy flow as before.
+
+## Note on scope
+This is a big, layered update built in one pass. If anything looks or behaves slightly off after deploying, tell me exactly what you see (a screenshot helps) and I'll fix that specific piece — better to patch precisely than redo broadly.

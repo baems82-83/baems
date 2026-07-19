@@ -65,6 +65,8 @@
     --slate:#1f9fc4;
     --line: rgba(24,35,82,0.18);
     --white:#fffdf6;
+    --shadow-sm: 0 1px 2px rgba(24,35,82,0.06), 0 1px 3px rgba(24,35,82,0.08);
+    --shadow-md: 0 4px 10px rgba(24,35,82,0.08), 0 2px 4px rgba(24,35,82,0.06);
   }
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
@@ -231,8 +233,10 @@
   /* faculty */
   .faculty-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:22px;}
   .faculty-card{
-    background:var(--white); border:1px solid var(--line); border-radius:4px; padding:22px;
+    background:var(--white); border:1px solid var(--line); border-radius:8px; padding:22px;
+    box-shadow:var(--shadow-sm); transition:box-shadow 0.2s, transform 0.2s;
   }
+  .faculty-card:hover{box-shadow:var(--shadow-md); transform:translateY(-2px);}
   .avatar{
     width:56px; height:56px; border-radius:50%; background:var(--slate); color:var(--white);
     display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:600;
@@ -253,9 +257,10 @@
   .gfilter.active{background:var(--ink); color:var(--paper);}
   .gallery-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
   .gcard{
-    border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--paper-2);
-    display:flex; flex-direction:column;
+    border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--paper-2);
+    display:flex; flex-direction:column; box-shadow:var(--shadow-sm); transition:box-shadow 0.2s, transform 0.2s;
   }
+  .gcard:hover{box-shadow:var(--shadow-md); transform:translateY(-2px);}
   .gcard img{width:100%; aspect-ratio:4/3; object-fit:cover; display:block;}
   .gcard .gbody{padding:12px 14px 14px;}
   .gcard .gevent{font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; color:var(--lab); margin-bottom:4px;}
